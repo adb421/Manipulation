@@ -210,3 +210,11 @@ void sortByArea(float *x, float *y, int* area, int nObjects) {
     nObjects -= 1;
   }
 }
+
+double calculateJointOneCamera() {
+    return atan2(yGlobal[0] - yGlobal[1], xGlobal[0] - xGlobal[1]);
+}
+
+double calculateJointTwoCamera() {
+    return atan2(yGlobal[1] - yGlobal[2], xGlobal[1] - xGlobal[2]) - calculateJointOneCamera();
+}

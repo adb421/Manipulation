@@ -98,6 +98,10 @@ void procCmd1() {
     controlVals2 = (double *)calloc(num_pts, sizeof(double));
     controlVals3 = (double *)calloc(num_pts, sizeof(double));
     loopTimes = (_uint64 *)calloc(num_pts, sizeof(_uint64));
+    cameraPosX = (double *)calloc(num_pts, sizeof(double));
+    cameraPosY = (double *)calloc(num_pts, sizeof(double));
+    cameraPos1 = (double *)calloc(num_pts, sizeof(double));
+    cameraPos2 = (double *)calloc(num_pts, sizeof(double));
     //Check to make sure allocation went well
     if(controlVals3 != NULL) {
 	sendString("MEMWIN\n");

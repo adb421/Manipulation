@@ -83,7 +83,7 @@ double current_position_RH11(uintptr_t iobase, int reset){
 	lastRH11 = currRH11;
 	if(reset) {
 		//Want reset to set it to -0.7977 (approx)
-		total_countRH11 = (int)(-0.7977/M_PI*200000.0);
+	    total_countRH11 = (int)(calculateJointTwoCamera()/M_PI*200000.0);
 //		total_countRH11 = 0;
 	}
 
@@ -107,8 +107,9 @@ double current_position_RH14(uintptr_t iobase, int reset){
 	lastRH14 = currRH14;
 	if(reset) {
 		//Want reset to set it to 1.838 rads
-		total_countRH14 = (int)(-1.0*1.838/M_PI*100000.0);
+//		total_countRH14 = (int)(-1.0*1.838/M_PI*100000.0);
 //		total_countRH14 = 0;
+	    total_countRH14 = (int)(calculateJointOneCamera()/M_PI*100000.0);
 	}
 
 	return -1.0*(((double)(total_countRH14))/100000.0)*M_PI;
@@ -177,6 +178,10 @@ void simpleReset() {
 	free(controlVals2);
 	free(controlVals3);
 	free(loopTimes);
+	free(cameraPosX);
+	free(cameraPosY);
+	free(cameraPos1);
+	free(cameraPos2);
 	//Ensure control mode is 0 and no control
 	control_mode = 0;
 	running = 0;

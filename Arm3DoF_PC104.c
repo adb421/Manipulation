@@ -45,12 +45,12 @@ int main(int argc, char *argv[]) {
   pthread_t tcpip_com_send_thread_id;
   pthread_create(&tcpip_com_send_thread_id, NULL, tcpip_com_send_thread, NULL);
   struct sched_param tcpip_com_sched_params, control_loop_sched_params, vision_loop_sched_params;
-
-  pthread_t control_loop_thread_id;
-  pthread_create(&control_loop_thread_id, NULL, control_loop_thread, NULL);
 	
   pthread_t vision_loop_thread_id;
   pthread_create(&vision_loop_thread_id, NULL, vision_loop_thread, NULL);
+
+  pthread_t control_loop_thread_id;
+  pthread_create(&control_loop_thread_id, NULL, control_loop_thread, NULL);
 	
   //Set thread priorities
   tcpip_com_sched_params.sched_priority = LOW_PRIORITY;
@@ -63,7 +63,7 @@ int main(int argc, char *argv[]) {
 
   while(1) {
     //sched_yield(); This uses more kernel time, use sleep instead. Sleep for second at a time. Could change this.
-    sleep(1);
+    sleep(3);
   }
   return EXIT_SUCCESS;
 }
@@ -117,6 +117,18 @@ void * control_loop_thread(void *arg) {
       position1[globalIndex] = tempPos1;
       position2[globalIndex] = tempPos2;
       position3[globalIndex] = tempPos3;
+      if(newCameraData) {
+	  cameraPosX[globalIndex] = xGlobal[2]; // Last object
+	  cameraPosY[globalIndex] = yGlobal[2]; // Last object
+	  cameraPos1[globalIndex] = calculateJointOneCamera();
+	  cameraPos2[globalIndex] = calculateJointTwoCamera();
+	  newCameraData = 0;
+      } else {
+	  cameraPosX[globalIndex] = 1000;
+	  cameraPosY[globalIndex] = 1000;
+	  cameraPos1[globalIndex] = 1000;
+	  cameraPos2[globalIndex] = 1000;
+      }
     }
     //calculate control, even if we aren't running a trajectory
     desCur1 = calculateControl1();

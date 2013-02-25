@@ -83,4 +83,8 @@ void convertToWorldFrame(float *x, float *y);
 void sortByArea(float *x, float *y, int* area, int nObjects);
 float cameraTiming[NUM_SAMPLES];
 
+//Calculates joint angles for 1 and 2 based on camera marker locations
+double calculateJointOneCamera();
+double calculateJointTwoCamera();
+
 #endif /* VISION_H_ */
