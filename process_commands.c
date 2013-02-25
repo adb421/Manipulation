@@ -314,16 +314,22 @@ void procCmd11() {
     /*   sendDouble(&yTemp); */
     /* } */
     //Send back objects in order
-    sendString("OBJORDER\n");
-    int i, tempInt;
-    double temp;
-    for(i = 0; i < desObj; i++) {
-	temp = (double)(xGlobal[i]);
-	sendDouble(&temp);
-	temp = (double)(yGlobal[i]);
-	sendDouble(&temp);
-	tempInt = (areaGlobal[i]);
-	sendInt(&tempInt);
-    }
+    /* sendString("OBJORDER\n"); */
+    /* int i, tempInt; */
+    /* double temp; */
+    /* for(i = 0; i < desObj; i++) { */
+    /* 	temp = (double)(xGlobal[i]); */
+    /* 	sendDouble(&temp); */
+    /* 	temp = (double)(yGlobal[i]); */
+    /* 	sendDouble(&temp); */
+    /* 	tempInt = (areaGlobal[i]); */
+    /* 	sendInt(&tempInt); */
+    /* } */
+  sendString("JOINTANGLESCAM\n");
+  double jointAngles[2];
+  jointAngles[0] = atan2(yGlobal[0] - yGlobal[1], xGlobal[0] - xGlobal[1]);
+  jointAngles[1] = atan2(yGlobal[1] - yGlobal[2], xGlobal[1] - xGlobal[2]) - jointAngles[0];
+  sendDouble(&(jointAngles[0]));
+  sendDouble(&(jointAngles[1]));
 }
 
