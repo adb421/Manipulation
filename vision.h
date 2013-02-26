@@ -20,8 +20,6 @@
 #define SIZE_UDP	  8  //UDP packet headers are always 8 bytes
 
 #define desObj 3
-/* #define X_OFFSET (-0.804427) */
-/* #define Y_OFFSET (-1.07845) */
 #define X_OFFSET 0.0
 #define Y_OFFSET 0.0
 
@@ -60,7 +58,15 @@ struct sniff_udp {
 	u_short udp_sum;		//Checksum
 };
 
-#define H_mat_vals {0.002195474896537, -0.00006412979676103758, -0.669754875953130, -0.000006920680662281351, 0.002230533548092, -0.045558655093215, -0.00005754571383216432, 0.00001007534286376455};
+#define H_MAT_VALS {0.002195474896537, -0.00006412979676103758, -0.669754875953130, -0.000006920680662281351, 0.002230533548092, -0.045558655093215, -0.00005754571383216432, 0.00001007534286376455};
+
+#define X_CAM_CENTER_WORLD_FRAME (0.221253936228969)
+#define Y_CAM_CENTER_WORLD_FRAME (0.897181546751267)
+
+#define RH14_HEIGHT (7.75*2.54/100.0) //7-3/4"
+#define RH11_HEIGHT (6.875*2.54/100.0) //6-7/8"
+#define RH8_HEIGHT  (5.625*2.54/100.0) //5-5/8"
+#define CAMERA_HEIGHT (68*2.54/100.0) //68"
 
 //Global variables
 float xGlobal[desObj];
@@ -87,5 +93,10 @@ float cameraTiming[NUM_SAMPLES];
 //Calculates joint angles for 1 and 2 based on camera marker locations
 double calculateJointOneCamera();
 double calculateJointTwoCamera();
+
+//Functions necessary for calculating un-parallax projected motor points
+void Unprojected(float *x, float *y, int motorSelection);
+float radialDistance(float x, float y);
+void radialVector(float x, float y, float* rad_vec);
 
 #endif /* VISION_H_ */

@@ -53,8 +53,8 @@
 #define I3 		(m3*L3*L3/12.0)
 
 //Home PI controls
-#define KPH1 (3.0)
-#define KIH1 (8.0)
+#define KPH1 (4.0)
+#define KIH1 (5.0)
 #define KPH2 (3.0)
 #define KIH2 (10.0)
 #define KPH3 (1.0)
