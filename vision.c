@@ -94,7 +94,7 @@ void convertToWorldFrame(float *x, float *y) {
   float yLambda = (*x)*H_mat[3] + (*y)*H_mat[4] + H_mat[5];
   float lambda  = (*x)*H_mat[6] + (*y)*H_mat[7] + 1.0;
   *x = xLambda/lambda + X_OFFSET;
-  *y = yLambda/lambda + Y_OFFSET;
+  *y = -1.0*(yLambda/lambda + Y_OFFSET);
 	
 }
 
@@ -212,9 +212,14 @@ void sortByArea(float *x, float *y, int* area, int nObjects) {
 }
 
 double calculateJointOneCamera() {
-    return atan2(yGlobal[0] - yGlobal[1], xGlobal[0] - xGlobal[1]);
+    double diff1 = (double)(yGlobal[0] - yGlobal[1]);
+    double diff2 = (double)(xGlobal[0] - xGlobal[1]);
+    return atan2(diff1, diff2);
 }
 
 double calculateJointTwoCamera() {
-    return atan2(yGlobal[1] - yGlobal[2], xGlobal[1] - xGlobal[2]) - calculateJointOneCamera();
+    double diff1 = (double)(yGlobal[1] - yGlobal[2]);
+    double diff2 = (double)(xGlobal[1] - xGlobal[2]);
+    return atan2(diff1, diff2) - calculateJointOneCamera();
+
 }

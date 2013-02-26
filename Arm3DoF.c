@@ -109,7 +109,7 @@ double current_position_RH14(uintptr_t iobase, int reset){
 		//Want reset to set it to 1.838 rads
 //		total_countRH14 = (int)(-1.0*1.838/M_PI*100000.0);
 //		total_countRH14 = 0;
-	    total_countRH14 = (int)(calculateJointOneCamera()/M_PI*100000.0);
+	    total_countRH14 = (int)(-1.0*calculateJointOneCamera()/M_PI*100000.0);
 	}
 
 	return -1.0*(((double)(total_countRH14))/100000.0)*M_PI;

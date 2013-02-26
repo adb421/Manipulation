@@ -20,9 +20,10 @@
 #define SIZE_UDP	  8  //UDP packet headers are always 8 bytes
 
 #define desObj 3
-#define X_OFFSET -0.804427
-#define Y_OFFSET -1.07845
-
+/* #define X_OFFSET (-0.804427) */
+/* #define Y_OFFSET (-1.07845) */
+#define X_OFFSET 0.0
+#define Y_OFFSET 0.0
 
 //Ethernet header
 struct sniff_ethernet {

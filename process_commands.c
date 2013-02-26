@@ -184,6 +184,19 @@ void procCmd3() {
 	sendDouble(&tempD);
     }
     sendString("END\n");
+    //Send back camera x pos, y pos, joint angles 1 and 2
+    for(i = 0; i < num_pts; i++) {
+	sendDouble(cameraPosX + i);
+    }
+    for(i = 0; i < num_pts; i++) {
+	sendDouble(cameraPosY + i);
+    }
+    for(i = 0; i < num_pts; i++) {
+	sendDouble(cameraPos1 + i);
+    }
+    for(i = 0; i < num_pts; i++) {
+	sendDouble(cameraPos2 + i);
+    }
     simpleReset();
 }
 
@@ -331,9 +344,18 @@ void procCmd11() {
     /* } */
   sendString("JOINTANGLESCAM\n");
   double jointAngles[2];
-  jointAngles[0] = atan2(yGlobal[0] - yGlobal[1], xGlobal[0] - xGlobal[1]);
-  jointAngles[1] = atan2(yGlobal[1] - yGlobal[2], xGlobal[1] - xGlobal[2]) - jointAngles[0];
+  jointAngles[0] = calculateJointOneCamera();//atan2(yGlobal[0] - yGlobal[1], xGlobal[0] - xGlobal[1]);
+  jointAngles[1] = calculateJointTwoCamera();//atan2(yGlobal[1] - yGlobal[2], xGlobal[1] - xGlobal[2]) - jointAngles[0];
   sendDouble(&(jointAngles[0]));
   sendDouble(&(jointAngles[1]));
+  int i;
+  double temp;
+  for(i = 0; i < desObj; i++) {
+      temp = (double)xGlobal[i];
+      sendDouble(&temp);
+      temp = (double)yGlobal[i];
+      sendDouble(&temp);
+      sendInt(&(areaGlobal[i]));
+  }
 }
 
