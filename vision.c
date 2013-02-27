@@ -94,7 +94,7 @@ void convertToWorldFrame(float *x, float *y) {
   float yLambda = (*x)*H_mat[3] + (*y)*H_mat[4] + H_mat[5];
   float lambda  = (*x)*H_mat[6] + (*y)*H_mat[7] + 1.0;
   *x = xLambda/lambda;
-  *y = yLambda/lambda;
+  *y = -1.0*yLambda/lambda;
 	
 }
 
@@ -176,7 +176,7 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     sortByArea(xGlobal, yGlobal, areaGlobal, nObjects);
     //Un-parrallax project motor heights
     for(i = 0; i < 3; i ++) {
-	Unprojected(xGlobal+i, yGlobal+i,i+1);
+	Unprojected(&(xGlobal[i]), &(yGlobal[i]),i+1);
     }
     //Now shift all locations
     for(i = 0; i < nObjects; i++) {
@@ -246,7 +246,7 @@ void Unprojected(float *x, float *y, int motorSelection) {
     case 1:
 	motor_height = RH14_HEIGHT;
 	break;
-    case 3:
+    case 2:
 	motor_height = RH11_HEIGHT;
 	break;
     case 3:
@@ -266,7 +266,8 @@ void Unprojected(float *x, float *y, int motorSelection) {
 
 //Calculate the distance to directly below the camera
 float radialDistance(float x, float y) {
-    return sqrt((x-X_CAM_CENTER_WORLD_FRAME)^2 + (y-Y_CAM_CENTER_WORLD_FRAME)^2);
+    return sqrt((x-X_CAM_CENTER_WORLD_FRAME)*(x-X_CAM_CENTER_WORLD_FRAME) + \
+    		(y-Y_CAM_CENTER_WORLD_FRAME)*(y-Y_CAM_CENTER_WORLD_FRAME));
 }
 
 //Calculate the direction from point directly below camera
