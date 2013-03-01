@@ -19,7 +19,7 @@
 #define SIZE_ETHERNET 14 //Ethernet packet headers are always 14 bytes
 #define SIZE_UDP	  8  //UDP packet headers are always 8 bytes
 
-#define desObj 3
+#define DES_MARKERS 5 //Two for object, 3 for camera
 //#define X_OFFSET 0.0
 //#define Y_OFFSET 0.0
 #define X_OFFSET (-0.51853)
@@ -71,9 +71,9 @@ struct sniff_udp {
 #define CAMERA_HEIGHT (68*2.54/100.0) //68"
 
 //Global variables
-float xGlobal[desObj];
-float yGlobal[desObj];
-int areaGlobal[desObj];
+double xGlobal[DES_MARKERS];
+double yGlobal[DES_MARKERS];
+int areaGlobal[DES_MARKERS];
 int newCameraData;
 int visionCount;
 

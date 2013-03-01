@@ -155,8 +155,8 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   //Check how many bytes we got!
   int nObjects = (size_payload - 24)/20;
   // printf("%d\n",nObjects);
-  if(nObjects == desObj) {
-    //printf("See %d\n", desObj);
+  if(nObjects >= 3) {
+    //printf("See %d\n", DES_MARKERS);
     int i;
     for(i = 0; i < nObjects; i++) {
       currentObject = payload + 24 + 20*i;
@@ -183,8 +183,14 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
 	xGlobal[i] += X_OFFSET;
 	yGlobal[i] += Y_OFFSET;
     }
+    //Calculate object world coordinates from marker location
+    if(nObjects == DES_MARKERS) {
     newCameraData = 1;
-    //printf("Wrote %d\n",desObj);
+    } else {
+    //No new camera data, didn't get enough markers
+    newCameraData = 0;
+    }
+    //printf("Wrote %d\n",DES_MARKERS);
     //pcap_breakloop((pcap_t *) args);
   }
   else {

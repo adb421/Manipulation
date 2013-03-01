@@ -223,6 +223,9 @@ double calculateControl1() {
 	//Term for gravity compensation
 	double gravComp = 0;
 
+	double xmdd, ymdd, thmdd;
+	double errorX, errorY, errorTh;
+
 	//If we are running a trajectory, calculate velocity
 	if(running && globalIndex >0 && globalIndex < num_pts) {
 		vel = (position1[globalIndex] - position1[globalIndex - 1])/DT;
@@ -276,6 +279,19 @@ double calculateControl1() {
 			reqCurrent = torque/KM1;
 		}
 		break;
+	case 6:
+	  //Dyanmic grasp
+	  errorX = traj1[globalIndex] - xObjectGlobal;
+	  errorY = traj2[globalIndex] - yObjectGlobal;
+	  errorTh = traj3[globalIndex] - thObjectGlobal;
+	  //Check for minimum distance on circle
+	  if(abs(errorTh) > abs(2*M_PI - errorTh))
+	    errorTh = 2*M_PI - errorTh;
+	  //Add code here to go from errors in OBJECT accel to manip accel
+	  
+	  torque = controlManipAccel1(xmdd, ymdd, thmdd);
+	  reqCurrent = torque/KM1;
+	  break;
 	default: break;
 	}
 	//Flip current, motor is installed "backwards"
@@ -294,6 +310,11 @@ double calculateControl2() {
 	double vel = 0;
 	//Term for gravity compensation
 	double gravComp = 0;
+
+	//For dynamic grasp
+	double xmdd, ymdd, thmdd;
+	double errorX, errorY, errorTh;
+
 
 	//If we are running a trajectory, calculate velocity
 	if(running && globalIndex >0 && globalIndex < num_pts) {
@@ -347,6 +368,18 @@ double calculateControl2() {
 			reqCurrent = torque/KM2;
 		}
 		break;
+	case 6:
+	  //Dyanmic grasp
+	  //Check for minimum distance on circle
+	  errorX = traj1[globalIndex] - xObjectGlobal;
+	  errorY = traj2[globalIndex] - yObjectGlobal;
+	  errorTh = traj3[globalIndex] - thObjectGlobal;
+	  if(abs(errorTh) > abs(2*M_PI - errorTh))
+	    errorTh = 2*M_PI - errorTh;
+	  //Add code here to go from errors in OBJECT accel to manip accel
+	  torque = controlManipAccel2(xmdd, ymdd, thmdd);
+	  reqCurrent = torque/KM2;
+	  break;
 	default: break;
 	}
 	//Setting the control will check bounds
@@ -361,6 +394,9 @@ double calculateControl3() {
 	double torque = 0;
 	//Finite differenced velocity
 	double vel = 0;
+
+	double xmdd, ymdd, thmdd;
+	double errorX, errorY, errorTh;
 
 	//If we are running a trajectory, calculate velocity
 	if(running && globalIndex >0 && globalIndex < num_pts) {
@@ -413,6 +449,18 @@ double calculateControl3() {
 			reqCurrent = torque/KM3;
 		}
 		break;
+	case 6:
+	  //Dyanmic grasp
+	  errorX = traj1[globalIndex] - xObjectGlobal;
+	  errorY = traj2[globalIndex] - yObjectGlobal;
+	  errorTh = traj3[globalIndex] - thObjectGlobal;
+	  //Check for minimum distance on circle
+	  if(abs(errorTh) > abs(2*M_PI - errorTh))
+	    errorTh = 2*M_PI - errorTh;
+	  //Add code here to go from errors in OBJECT accel to manip accel
+	  torque = controlManipAccel3(xmdd, ymdd, thmdd);
+	  reqCurrent = torque/KM3;
+	  break;
 	default: break;
 	}
 	//Setting the control will check bounds
@@ -502,10 +550,10 @@ double feedForward3() {
 	} else return 0.0;
 }
 
-double dynamicGrasp1(double xmdd, double ymdd, double thmdd) {
+double controlManipAccel1(double xmdd, double ymdd, double thmdd) {
     if(globalIndex >= 0 && globalIndex < num_pts && running) {
 	double th1, th2, th3, th1d, th2d, th3d;
-	double c1, c12, s1, s12, c122, s122, c1_2, s1_2;
+	double c1, c2, c12, s1, s12, s2, c122, s122, c1_2, s1_2;
 	double staticFric, torqueDes;
 	th1 = position1[globalIndex];
 	th2 = position2[globalIndex];
@@ -538,25 +586,25 @@ double dynamicGrasp1(double xmdd, double ymdd, double thmdd) {
 				  L2*(m2+2.0*m3+2.0*mm3)*c12) + 4.0*staticFric + \
 			  4.0*MUD1*th1d - 4.0*L1*L2*(m2+2.0*m3+2.0*mm3)*s2*th1d*th2d - \
 			  2.0*L1*L2*(m2 + 2.0*m3 + 2.0*mm3)*s2*th2d*th2d + \
-			  1.0/(L1*L2)*(-2.0*L1*(2.0*I2 + L2*L2*(m3 + mm3) + 2.0*RH11)*c1 + \
+			  1.0/(L1*L2)*(-2.0*L1*(2.0*I2 + L2*L2*(m3 + mm3) + 2.0*J2)*c1 + \
 				     L2*(-1.0*L1*L1*(m2+2.0*m3+2.0*mm3)*c1_2 + \
 					 (4.0*I1 + L1*L1*(m1+3.0*m2+2.0*m3+4.0*mm2+2.0*mm3) + \
-					  4.0*RH14)*c12 + L1*L2*(m2 + 2.0*m3 + 2.0*mm3)*c122)) * \
+					  4.0*J1)*c12 + L1*L2*(m2 + 2.0*m3 + 2.0*mm3)*c122)) * \
 			  1.0/s2*(L1*c1*th1d*th1d + L2*c1*c2*(th1d + th2d)*(th1d + th2d) - \
 				L2*s1*s2*(th1d+th2d)*(th1d+th2d) - xmdd) + \
-			  1.0/(L1*L2)*1/s2*(-2.0*L1*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*RH11)*s1 + \
-					  L2*(-1.0*L1*L1*(m2+2.0*(m3+mm3))s1_2)) * \
+			  1.0/(L1*L2)*1/s2*(-2.0*L1*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*J2)*s1 + \
+					  L2*(-1.0*L1*L1*(m2+2.0*(m3+mm3))*s1_2)) * \
 			  (L1*s1*th1d*th1d + L2*c2*s1*(th1d+th2d)*(th1d+th2d) + \
 			   L2*c1*s2*(th1d+th2d)*(th1d+th2d) - ymdd) + \
-			  4.0*(I3+RH8)*thmdd);
+			  4.0*(I3+J3)*thmdd);
 	return torqueDes;
     } else return 0.0;
 }
-double dynamicGrasp2(double xmdd, double ymdd, double thmdd) {
+double controlManipAccel2(double xmdd, double ymdd, double thmdd) {
     if(globalIndex >= 0 && globalIndex < num_pts && running) {
 	double th1, th2, th1d, th2d;
-	double c1, c12, s2;
-	double staticFric, torquedes;
+	double c1, c2, c12, c122, s1, s2, s122;
+	double staticFric, torqueDes;
 	th1 = position1[globalIndex];
 	th2 = position2[globalIndex];
 	if(globalIndex >0) {
@@ -583,17 +631,17 @@ double dynamicGrasp2(double xmdd, double ymdd, double thmdd) {
 	/* c1_2 = cos(th1-th2); */
 	/* s1_2 = sin(th1-th2); */
 	torqueDes = 1.0/(4.0*L2)*(-2.0*g*L2*L2*(m2+2.0*m3+2.0*mm3)*c12 + 4.0*L2*staticFric - \
-				(4.0*I2-L2*L2*m2 + 4.0*RH11)*(L1+L2*c2)*th1d*th1d/s2 + \
-				L2*th2d*(4.0*MUD2 - (4.0*I2 - L2*L2*m2 + 4.0*RH11)*c2/s2*(2.0*th1d + th2d)) + \
-				1.0/s2*((2.0*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*RH11)*c1 - \
+				(4.0*I2-L2*L2*m2 + 4.0*J2)*(L1+L2*c2)*th1d*th1d/s2 + \
+				L2*th2d*(4.0*MUD2 - (4.0*I2 - L2*L2*m2 + 4.0*J2)*c2/s2*(2.0*th1d + th2d)) + \
+				1.0/s2*((2.0*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*J2)*c1 - \
 					 L2*L2*(m2+2.0*m3+2.0*mm3)*c122)*xmdd + \
-					(2.0*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*RH11)*s1 - \
+					(2.0*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*J2)*s1 - \
 					 L2*L2*(m2 +2.0*m3+2.0*mm3)*s122)*ymdd) + \
-				4.0*L2*(I3+RH8)*thmdd);
+				4.0*L2*(I3+J3)*thmdd);
     } else return 0.0;
 }
 
-double dynamicGrasp3(double xmdd, double ymdd, double thmdd) {
+double controlManipAccel3(double xmdd, double ymdd, double thmdd) {
     if(globalIndex >= 0 && globalIndex < num_pts && running) {
 	double th3, staticFric, th3d;
 	th3 = position3[globalIndex];
@@ -607,7 +655,7 @@ double dynamicGrasp3(double xmdd, double ymdd, double thmdd) {
 	else
 	    staticFric = -1.0*MUS3;
 
-	return staticFric + MUD3*th3d + (I3 + RH8)*thmdd;
+	return staticFric + MUD3*th3d + (I3 + J3)*thmdd;
     } else return 0.0;
 }
 

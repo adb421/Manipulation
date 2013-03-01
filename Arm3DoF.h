@@ -83,6 +83,9 @@ void set_control_RH14(uintptr_t iobase, double desCurrent);
 void initialize_variables();
 void initialize_junus(uintptr_t iobase);
 void simpleReset();
+double controlManipAccel1(double xmdd, double ymdd, double thmdd);
+double controlManipAccel2(double xmdd, double ymdd, double thmdd);
+double controlManipAccel3(double xmdd, double ymdd, double thmdd);
 
 uintptr_t iobase;
 uint16_t  DIO_word;
@@ -119,8 +122,11 @@ double errorInt1, errorInt2, errorInt3;
 double *position1, *position2, *position3;
 double *traj1, *traj2, *traj3;
 double *controlVals1, *controlVals2, *controlVals3;
+double *objectX, *objectY, *objectTh;
 _uint64 *loopTimes;
 
 double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2;
+
+double xObjectGlobal, yObjectGlobal, thObjectGlobal;
 
 #endif /* ARM3DOF_H_ */

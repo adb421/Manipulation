@@ -122,12 +122,22 @@ void * control_loop_thread(void *arg) {
 	  cameraPosY[globalIndex] = yGlobal[2]; // Last object
 	  cameraPos1[globalIndex] = calculateJointOneCamera();
 	  cameraPos2[globalIndex] = calculateJointTwoCamera();
+	  xObjectGlobal = (xGlobal[3] + xGlobal[4])/2.0;
+	  yObjectGlobal = (yGlobal[3] + yGlobal[4])/2.0;
+	  thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
+	  objectX[globalIndex] = xObjectGlobal;
+	  objectY[globalIndex] = yObjectGlobal;
+	  objectTh[globalIndex] = thObjectGlobal;
 	  newCameraData = 0;
       } else {
 	  cameraPosX[globalIndex] = 1000;
 	  cameraPosY[globalIndex] = 1000;
 	  cameraPos1[globalIndex] = 1000;
 	  cameraPos2[globalIndex] = 1000;
+	  //Can update this in the future to include a velocity term/estimate
+	  objectX[globalIndex] = xObjectGlobal;
+	  objectY[globalIndex] = yObjectGlobal;
+	  objectTh[globalIndex] = thObjectGlobal;
       }
     }
     //calculate control, even if we aren't running a trajectory

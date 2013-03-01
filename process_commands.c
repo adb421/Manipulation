@@ -97,6 +97,9 @@ void procCmd1() {
     controlVals1 = (double *)calloc(num_pts, sizeof(double));
     controlVals2 = (double *)calloc(num_pts, sizeof(double));
     controlVals3 = (double *)calloc(num_pts, sizeof(double));
+    objectX = (double *)calloc(num_pts, sizeof(double));
+    objectY = (double *)calloc(num_pts, sizeof(double));
+    objectTh = (double *)calloc(num_pts, sizeof(double));
     loopTimes = (_uint64 *)calloc(num_pts, sizeof(_uint64));
     cameraPosX = (double *)calloc(num_pts, sizeof(double));
     cameraPosY = (double *)calloc(num_pts, sizeof(double));
@@ -197,6 +200,15 @@ void procCmd3() {
     for(i = 0; i < num_pts; i++) {
 	sendDouble(cameraPos2 + i);
     }
+    for(i = 0; i< num_pts; i++) {
+    	sendDouble(objectX + i);
+    }
+    for(i = 0; i< num_pts; i++) {
+    	sendDouble(objectY + i);
+    }
+    for(i = 0; i< num_pts; i++) {
+    	sendDouble(objectTh + i);
+    }
     simpleReset();
 }
 
@@ -234,7 +246,9 @@ void procCmd5() {
     //Pure PID control
     //control_mode = 4;
     //Feedforward + PID control
-    control_mode = 5;
+    // control_mode = 5;
+    //Dynamic Grasp
+    control_mode = 6;
 }
 
 //Get control gains
@@ -350,7 +364,7 @@ void procCmd11() {
   sendDouble(&(jointAngles[1]));
   int i;
   double temp;
-  for(i = 0; i < desObj; i++) {
+  for(i = 0; i < DES_MARKERS; i++) {
       temp = (double)xGlobal[i];
       sendDouble(&temp);
       temp = (double)yGlobal[i];
