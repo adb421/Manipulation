@@ -502,6 +502,115 @@ double feedForward3() {
 	} else return 0.0;
 }
 
+double dynamicGrasp1(double xmdd, double ymdd, double thmdd) {
+    if(globalIndex >= 0 && globalIndex < num_pts && running) {
+	double th1, th2, th3, th1d, th2d, th3d;
+	double c1, c12, s1, s12, c122, s122, c1_2, s1_2;
+	double staticFric, torqueDes;
+	th1 = position1[globalIndex];
+	th2 = position2[globalIndex];
+	th3 = position3[globalIndex];
+	if(globalIndex >0) {
+	    th1d = (position1[globalIndex] - position1[globalIndex -1])/DT;
+	    th2d = (position2[globalIndex] - position2[globalIndex -1])/DT;
+	    th3d = (position3[globalIndex] - position3[globalIndex -1])/DT;
+	} else {
+	    th1d = 0.0;
+	    th2d = 0.0;
+	    th3d = 0.0;
+	}
+
+	if(th2d < 0.01 & th2d > -0.01) return 0.0;
+	if(th1d >= 0.0)
+	    staticFric = MUS1;
+	else
+	    staticFric = -1.0*MUS1;
+	c1 = cos(th1);
+	c12 = cos(th1+th2);
+	s1 = sin(th1);
+	s12 = sin(th1+th2);
+	c122 = cos(th1+2.0*th2);
+	s122 = sin(th1+2.0*th2);
+	c1_2 = cos(th1-th2);
+	s1_2 = sin(th1-th2);
+
+	torqueDes = 0.25*(-2.0*g*(L1*(m1 + 2.0*m2 + 2.0*m3 + 2.0*mm2 + 2.0*mm3)*c1 + \
+				  L2*(m2+2.0*m3+2.0*mm3)*c12) + 4.0*staticFric + \
+			  4.0*MUD1*th1d - 4.0*L1*L2*(m2+2.0*m3+2.0*mm3)*s2*th1d*th2d - \
+			  2.0*L1*L2*(m2 + 2.0*m3 + 2.0*mm3)*s2*th2d*th2d + \
+			  1.0/(L1*L2)*(-2.0*L1*(2.0*I2 + L2*L2*(m3 + mm3) + 2.0*RH11)*c1 + \
+				     L2*(-1.0*L1*L1*(m2+2.0*m3+2.0*mm3)*c1_2 + \
+					 (4.0*I1 + L1*L1*(m1+3.0*m2+2.0*m3+4.0*mm2+2.0*mm3) + \
+					  4.0*RH14)*c12 + L1*L2*(m2 + 2.0*m3 + 2.0*mm3)*c122)) * \
+			  1.0/s2*(L1*c1*th1d*th1d + L2*c1*c2*(th1d + th2d)*(th1d + th2d) - \
+				L2*s1*s2*(th1d+th2d)*(th1d+th2d) - xmdd) + \
+			  1.0/(L1*L2)*1/s2*(-2.0*L1*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*RH11)*s1 + \
+					  L2*(-1.0*L1*L1*(m2+2.0*(m3+mm3))s1_2)) * \
+			  (L1*s1*th1d*th1d + L2*c2*s1*(th1d+th2d)*(th1d+th2d) + \
+			   L2*c1*s2*(th1d+th2d)*(th1d+th2d) - ymdd) + \
+			  4.0*(I3+RH8)*thmdd);
+	return torqueDes;
+    } else return 0.0;
+}
+double dynamicGrasp2(double xmdd, double ymdd, double thmdd) {
+    if(globalIndex >= 0 && globalIndex < num_pts && running) {
+	double th1, th2, th1d, th2d;
+	double c1, c12, s2;
+	double staticFric, torquedes;
+	th1 = position1[globalIndex];
+	th2 = position2[globalIndex];
+	if(globalIndex >0) {
+	    th1d = (position1[globalIndex] - position1[globalIndex -1])/DT;
+	    th2d = (position2[globalIndex] - position2[globalIndex -1])/DT;
+	} else {
+	    th1d = 0.0;
+	    th2d = 0.0;
+	}
+
+	if(th2d < 0.01 & th2d > -0.01) return 0.0;
+	if(th2d >= 0.0)
+	    staticFric = MUS2;
+	else
+	    staticFric = -1.0*MUS2;
+	/* c1 = cos(th1); */
+	c2 = cos(th2);
+	c12 = cos(th1+th2);
+	/* s1 = sin(th1); */
+	s2 = sin(th2);
+	/* s12 = sin(th1+th2); */
+	c122 = cos(th1+2.0*th2);
+	s122 = sin(th1+2.0*th2);
+	/* c1_2 = cos(th1-th2); */
+	/* s1_2 = sin(th1-th2); */
+	torqueDes = 1.0/(4.0*L2)*(-2.0*g*L2*L2*(m2+2.0*m3+2.0*mm3)*c12 + 4.0*L2*staticFric - \
+				(4.0*I2-L2*L2*m2 + 4.0*RH11)*(L1+L2*c2)*th1d*th1d/s2 + \
+				L2*th2d*(4.0*MUD2 - (4.0*I2 - L2*L2*m2 + 4.0*RH11)*c2/s2*(2.0*th1d + th2d)) + \
+				1.0/s2*((2.0*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*RH11)*c1 - \
+					 L2*L2*(m2+2.0*m3+2.0*mm3)*c122)*xmdd + \
+					(2.0*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*RH11)*s1 - \
+					 L2*L2*(m2 +2.0*m3+2.0*mm3)*s122)*ymdd) + \
+				4.0*L2*(I3+RH8)*thmdd);
+    } else return 0.0;
+}
+
+double dynamicGrasp3(double xmdd, double ymdd, double thmdd) {
+    if(globalIndex >= 0 && globalIndex < num_pts && running) {
+	double th3, staticFric, th3d;
+	th3 = position3[globalIndex];
+	if(globalIndex >0 ) {
+	    th3d = (position3[globalIndex] - position3[globalIndex -1])/DT;
+	} else {
+	    th3d = 0.0;
+	}
+	if(th3d >= 0.0)
+	    staticFric = MUS3;
+	else
+	    staticFric = -1.0*MUS3;
+
+	return staticFric + MUD3*th3d + (I3 + RH8)*thmdd;
+    } else return 0.0;
+}
+
 double calculateTrajVel1(void) {
 	if(globalIndex < 1) return 0.0;
 	else {
