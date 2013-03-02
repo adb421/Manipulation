@@ -41,16 +41,39 @@
 //Robot parameters
 #define L1		0.193675
 #define L2		0.19685
-#define L3		0.195
+//#define L3		0.195
 #define mm2		0.489
 #define mm3		0.35
 #define m1		0.387
 #define m2		0.193
-#define m3		0.0405
+//#define m3		0.0405
 #define g		(9.81*sin(TABLE_ANGLE))
 #define I1		(m1*L1*L1/12.0)
 #define I2		(m2*L2*L2/12.0)
-#define I3 		(m3*L3*L3/12.0)
+//#define I3 		(m3*L3*L3/12.0)
+
+//Manipulator parameters
+//Always have the mounting bar
+#define W_MOUNT (0.026) //26mm
+#define L_MOUNT (0.205) //20.5cm
+#define M_MOUNT (0.0276) //27.6g
+#define I_MOUNT (M_MOUNT*(L_MOUNT*L_MOUNT + W_MOUNT*W_MOUNT)/12.0)
+#define RECT_MANIP
+#ifdef RECT_MANIP
+#define lm (0.115) // 23cm, divide by 2, in m
+#define wm (0.04) // 8cm, divide by 2, in m
+#define m3 (0.125 + M_MOUNT) // 125g
+#define I3 (((m3-M_MOUNT)*(4.0*lm*lm + 4.0*wm*wm))/12.0) + I_MOUNT // m(h^2 + w^2)/ 12
+#endif
+
+//Object parameters
+#define SQUARE_OBJECT
+#ifdef SQUARE_OBJECT
+#define lo (0.05) //10cm, divide by 2, in m
+#define wo (0.05)
+#define mo (0.06) //60 g
+#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0); // m(h^2 + w^2)/12
+#endif
 
 //Home PI controls
 #define KPH1 (4.0)
@@ -86,7 +109,7 @@ void simpleReset();
 double controlManipAccel1(double xmdd, double ymdd, double thmdd);
 double controlManipAccel2(double xmdd, double ymdd, double thmdd);
 double controlManipAccel3(double xmdd, double ymdd, double thmdd);
-
+void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, double *ymdd, double *thmdd);
 uintptr_t iobase;
 uint16_t  DIO_word;
 
@@ -108,6 +131,7 @@ int num_pts;
 int running;
 
 double home1, home2, home3;
+double objHomeX, objHomeY, objHomeTh;
 
 _uint64 longestLoopTime;
 
@@ -126,6 +150,8 @@ double *objectX, *objectY, *objectTh;
 _uint64 *loopTimes;
 
 double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2;
+
+double contactPoint1, contactPoint2;
 
 double xObjectGlobal, yObjectGlobal, thObjectGlobal;
 

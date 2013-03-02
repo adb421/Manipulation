@@ -22,8 +22,8 @@
 #define DES_MARKERS 5 //Two for object, 3 for camera
 //#define X_OFFSET 0.0
 //#define Y_OFFSET 0.0
-#define X_OFFSET (-0.51853)
-#define Y_OFFSET (0.15823)
+#define X_OFFSET (-0.51655)
+#define Y_OFFSET (0.15371)
 
 //Ethernet header
 struct sniff_ethernet {
@@ -86,10 +86,10 @@ void * vision_loop_thread(void *arg);
 void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet);
 
 //Function converts x and y to world frames using H transform above
-void convertToWorldFrame(float *x, float *y);
+void convertToWorldFrame(double *x, double *y);
 
 //Function sorts the objects in descending order by size of marker
-void sortByArea(float *x, float *y, int* area, int nObjects);
+void sortByArea(double *x, double *y, int* area, int nObjects);
 float cameraTiming[NUM_SAMPLES];
 
 //Calculates joint angles for 1 and 2 based on camera marker locations
@@ -97,8 +97,8 @@ double calculateJointOneCamera();
 double calculateJointTwoCamera();
 
 //Functions necessary for calculating un-parallax projected motor points
-void Unprojected(float *x, float *y, int motorSelection);
-float radialDistance(float x, float y);
-void radialVector(float x, float y, float* rad_vec);
+void Unprojected(double *x, double *y, int motorSelection);
+double radialDistance(double x, double y);
+void radialVector(double x, double y, double* rad_vec);
 
 #endif /* VISION_H_ */

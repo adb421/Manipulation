@@ -57,6 +57,10 @@ void process_cmd() {
 	//Use as a misc function, now using it to test it as RS232
 	procCmd11();
 	break;
+    case 12:
+	//Calculate contact points on manipulator in terms of arclength
+	procCmd12();
+	break;
     case -1:
 	printf("Couldn't read a command\n");
 	break;
@@ -221,10 +225,13 @@ void procCmd4() {
     errorInt2 = 0;
     errorInt3 = 0;
     //Control mode 1 is go home
-    control_mode = 1;
+    /* control_mode = 1; */
     globalIndex = -1;
+    //Control mode 7 is dynamic grasp maintain pos
+    control_mode = 7;
     //Tell PC we are starting to go home
     sendString("HOME\n");
+    printf("Going home\n");
 }
 
 //Execute trajectory
@@ -271,9 +278,13 @@ void procCmd7() {
     //Make sure we aren't running
     running = 0;
     //read the home positions
-    readDouble(&home1);
-    readDouble(&home2);
-    readDouble(&home3);
+    /* readDouble(&home1); */
+    /* readDouble(&home2); */
+    /* readDouble(&home3); */
+    //Get object home positions
+    readDouble(&objHomeX);
+    readDouble(&objHomeY);
+    readDouble(&objHomeTh);
     //We got home positions
     sendString("HOMEUPDATED\n");
 }
@@ -364,12 +375,19 @@ void procCmd11() {
   sendDouble(&(jointAngles[1]));
   int i;
   double temp;
-  for(i = 0; i < DES_MARKERS; i++) {
-      temp = (double)xGlobal[i];
-      sendDouble(&temp);
-      temp = (double)yGlobal[i];
-      sendDouble(&temp);
+  for(i = 0; i < 3; i++) {
+//      temp = (double)xGlobal[i];
+//      sendDouble(&temp);
+//      temp = (double)yGlobal[i];
+//      sendDouble(&temp);
+	  sendDouble(&(xGlobal[i]));
+	  sendDouble(&(yGlobal[i]));
       sendInt(&(areaGlobal[i]));
   }
 }
 
+//Contact point on manipulator in terms of arc length
+void procCmd12() {
+    arcLengthContactPoints();
+    sendString("CONTACTPOINT\n");
+}

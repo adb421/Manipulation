@@ -104,6 +104,7 @@ void * control_loop_thread(void *arg) {
     //Block thread until interrupt occurs
     //This interrupt happens every time the timer runs out
     InterruptWait(0,NULL);
+ //   printf("%d\n", control_mode);
 
     //Now we do control loop!
     //Read encoders every cycle
@@ -122,9 +123,6 @@ void * control_loop_thread(void *arg) {
 	  cameraPosY[globalIndex] = yGlobal[2]; // Last object
 	  cameraPos1[globalIndex] = calculateJointOneCamera();
 	  cameraPos2[globalIndex] = calculateJointTwoCamera();
-	  xObjectGlobal = (xGlobal[3] + xGlobal[4])/2.0;
-	  yObjectGlobal = (yGlobal[3] + yGlobal[4])/2.0;
-	  thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
 	  objectX[globalIndex] = xObjectGlobal;
 	  objectY[globalIndex] = yObjectGlobal;
 	  objectTh[globalIndex] = thObjectGlobal;
@@ -158,7 +156,7 @@ void * control_loop_thread(void *arg) {
     }
 
     //Check if we finished traj
-    if(globalIndex >=(num_pts -1)) {
+    if(globalIndex >=(num_pts -1) && control_mode != 7) {
       //No longer running
       running = 0;
       //Kill control
