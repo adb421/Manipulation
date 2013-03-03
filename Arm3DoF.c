@@ -61,7 +61,7 @@ double current_position_RH8(uintptr_t iobase, int reset){
 
 	lastRH8 = currRH8;
 	if(reset) {
-	    total_countRH8 = (int)((-1.0*current_position_RH11(iobase,0) - current_position_RH14(iobase, 0))/M_PI*51200.0);
+	    total_countRH8 = (int)((-1.0*calculateJointTwoCamera() - calculateJointOneCamera())/M_PI*51200.0);
 //		total_countRH8 = 0;
 	}
 	//total_countRH8 = read_encoder_1(iobase);
@@ -687,7 +687,7 @@ double controlManipAccel1(double xmdd, double ymdd, double thmdd) {
 			  1.0/(L1*L2*s2)*(-2.0*L1*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*J2)*s1 + \
 					  L2*(-1.0*L1*L1*(m2+2.0*(m3+mm3))*s1_2 + \
 			  (4.0*I1 + L1*L1*(m1 + 3.0*m2+2.0*m3+4.0*mm2+2.0*mm3) + 4*J1)*s12 + \
-					      L1*L2*(m2+2.0*m3+2.0*mm3)*s122)) \
+					      L1*L2*(m2+2.0*m3+2.0*mm3)*s122))* \
 			  (L1*s1*th1d*th1d + L2*c2*s1*(th1d+th2d)*(th1d+th2d) +	\
 			   L2*c1*s2*(th1d+th2d)*(th1d+th2d) - ymdd) + 4.0*(I3+J3)*thmdd);
 	return torqueDes;
@@ -830,18 +830,18 @@ void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, d
 	else
 	    thmd = 0.0;
 	*thmdd = thodd;
-	*xmdd = ((contactPoint1-lm+l0)*cm - (wm + wo)*sm)*thmd*thmd + xodd + \
+	*xmdd = ((contactPoint1-lm+lo)*cm - (wm + wo)*sm)*thmd*thmd + xodd + \
 	    ((wm+wo)*cm + (contactPoint1 - lm + lo)*sm)*thodd;
 	*ymdd = ((wm+wo)*cm + (contactPoint1 - lm + lo)*sm)*thmd*thmd + yodd + \
 	    ((lm - contactPoint1 - lo)*cm + (wm + wo)*sm)*thodd;
-    } else if(control_mode == 7 && contactPoint > -1.0) {
+    } else if(control_mode == 7 && contactPoint1 > -1.0) {
 	thm = current_position_RH14(iobase,0) + current_position_RH11(iobase, 0) + \
 	    current_position_RH8(iobase, 0);
 	thmd = (thm - thmOld)/DT;
 	cm = cos(thm);
 	sm = sin(thm);
 	*thmdd = thodd;
-	*xmdd = ((contactPoint1-lm+l0)*cm - (wm + wo)*sm)*thmd*thmd + xodd + \
+	*xmdd = ((contactPoint1-lm+lo)*cm - (wm + wo)*sm)*thmd*thmd + xodd + \
 	    ((wm+wo)*cm + (contactPoint1 - lm + lo)*sm)*thodd;
 	*ymdd = ((wm+wo)*cm + (contactPoint1 - lm + lo)*sm)*thmd*thmd + yodd + \
 	    ((lm - contactPoint1 - lo)*cm + (wm + wo)*sm)*thodd;
@@ -879,7 +879,12 @@ void arcLengthContactPoints() {
     }
     contactPoint2 = contactPoint1 + 2.0*lo;
     //print just to check if this makes sense
-    /* printf("xM: %f, yM: %f, thm: %f\n",xm,ym,thm); */
-    /* printf("xO: %f, yO: %f, tho: %f\n",xObjectGloabl, yObjectGlobal,thObjectGlobal); */
-    /* printf("s1: %f, s2: %f\n", contactPoint1, contactPoint2); */
+    printf("xM: %f, yM: %f, thm: %f\n",xm,ym,thm);
+    printf("xo: %f, yo: %f, tho: %f\n",xObjectGlobal, yObjectGlobal,thObjectGlobal);
+    printf("s1: %f, s2: %f\n", contactPoint1, contactPoint2);
+    printf("xRH14: %f, yRH14: %f, thRH14: %f\n", xGlobal[0], yGlobal[0], th1);
+    printf("xRH11: %f, yRH11: %f, thRH11: %f\n", xGlobal[1], yGlobal[1], th2);
+    printf("xRH8: %f, yRH8: %f, thRH8: %f\n", xGlobal[2], yGlobal[2], th3);
+    printf("xMark1: %f, yMark1: %f\n",xGlobal[3], yGlobal[3]);
+    printf("xMark2: %f, xMark2: %f\n",xGlobal[4], yGlobal[4]);
 }

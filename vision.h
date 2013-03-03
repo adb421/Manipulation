@@ -22,8 +22,10 @@
 #define DES_MARKERS 5 //Two for object, 3 for camera
 //#define X_OFFSET 0.0
 //#define Y_OFFSET 0.0
-#define X_OFFSET (-0.51655)
-#define Y_OFFSET (0.15371)
+//#define X_OFFSET (-0.51655)
+//#define Y_OFFSET (0.15371)
+double X_OFFSET;
+double Y_OFFSET;
 
 //Ethernet header
 struct sniff_ethernet {

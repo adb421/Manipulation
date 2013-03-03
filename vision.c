@@ -89,13 +89,17 @@ void * vision_loop_thread(void *arg) {
 }
 
 void convertToWorldFrame(double *x, double *y) {
+	double xVal, yVal;
+	xVal = *x;
+	yVal = *x;
   const double H_mat[8] = H_MAT_VALS;
-  double xLambda = (*x)*H_mat[0] + (*y)*H_mat[1] + H_mat[2];
-  double yLambda = (*x)*H_mat[3] + (*y)*H_mat[4] + H_mat[5];
-  double lambda  = (*x)*H_mat[6] + (*y)*H_mat[7] + 1.0;
-  *x = xLambda/lambda;
-  *y = -1.0*yLambda/lambda;
-	
+  double xLambda = xVal*H_mat[0] + yVal*H_mat[1] + H_mat[2];
+  double yLambda = xVal*H_mat[3] + yVal*H_mat[4] + H_mat[5];
+  double lambda  = xVal*H_mat[6] + yVal*H_mat[7] + 1.0;
+  xVal = xLambda/lambda;
+  yVal = -1.0*yLambda/lambda;
+  *x = xVal;
+  *y = yVal;
 }
 
 void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
@@ -179,8 +183,10 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     //Un-parrallax project motor heights
     for(i = 0; i < 3; i ++) {
     	//printf("x1: %f x2: %f x3: %f\n", xGlobal[0], xGlobal[1], xGlobal[2]);
-	Unprojected(&(xGlobal[i]), &(yGlobal[i]),i+1);
+    	Unprojected(xGlobal + i, yGlobal + i,i+1);
     }
+    X_OFFSET = -1.0*xGlobal[0];
+    Y_OFFSET = -1.0*yGlobal[0];
     //Now shift all locations
     for(i = 0; i < nObjects; i++) {
 	xGlobal[i] += X_OFFSET;
@@ -192,7 +198,7 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
 	yObjectGlobal = (yGlobal[3] + yGlobal[4])/2.0;
 	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
 	//Update contact points
-	arcLengthContactPoints();
+	//arcLengthContactPoints();
 	newCameraData = 1;
     } else {
     //No new camera data, didn't get enough markers
@@ -235,14 +241,14 @@ void sortByArea(double *x, double *y, int* area, int nObjects) {
 }
 
 double calculateJointOneCamera() {
-    double diff1 = (double)(yGlobal[0] - yGlobal[1]);
-    double diff2 = (double)(xGlobal[0] - xGlobal[1]);
+    double diff1 = (yGlobal[0] - yGlobal[1]);
+    double diff2 = (xGlobal[0] - xGlobal[1]);
     return atan2(diff1, diff2);
 }
 
 double calculateJointTwoCamera() {
-    double diff1 = (double)(yGlobal[1] - yGlobal[2]);
-    double diff2 = (double)(xGlobal[1] - xGlobal[2]);
+    double diff1 = (yGlobal[1] - yGlobal[2]);
+    double diff2 = (xGlobal[1] - xGlobal[2]);
     return atan2(diff1, diff2) - calculateJointOneCamera();
 
 }
