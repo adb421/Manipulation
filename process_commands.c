@@ -105,10 +105,6 @@ void procCmd1() {
     objectY = (double *)calloc(num_pts, sizeof(double));
     objectTh = (double *)calloc(num_pts, sizeof(double));
     loopTimes = (_uint64 *)calloc(num_pts, sizeof(_uint64));
-    cameraPosX = (double *)calloc(num_pts, sizeof(double));
-    cameraPosY = (double *)calloc(num_pts, sizeof(double));
-    cameraPos1 = (double *)calloc(num_pts, sizeof(double));
-    cameraPos2 = (double *)calloc(num_pts, sizeof(double));
     //Check to make sure allocation went well
     if(controlVals3 != NULL) {
 	sendString("MEMWIN\n");
@@ -147,7 +143,7 @@ void procCmd3() {
     //Make sure we aren't running
     running = 0;
     //Set control mode to 0, no control
-    control_mode = 0;
+    control_mode = NO_CONTROL;
     //Reset global index
     globalIndex = -1;
     //Send data back (sendData();
@@ -192,26 +188,21 @@ void procCmd3() {
     }
     sendString("END\n");
     //Send back camera x pos, y pos, joint angles 1 and 2
-    for(i = 0; i < num_pts; i++) {
-	sendDouble(cameraPosX + i);
+    /* for(i = 0; i< num_pts; i++) { */
+    /* 	sendDouble(objectX + i); */
+    /* } */
+    /* for(i = 0; i< num_pts; i++) { */
+    /* 	sendDouble(objectY + i); */
+    /* } */
+    /* for(i = 0; i< num_pts; i++) { */
+    /* 	sendDouble(objectTh + i); */
+    /* } */
+    //Send back manipulator x,y
+    for(i = 0; i<num_pts; i++) {
+	sendDouble(objectX + i);
     }
-    for(i = 0; i < num_pts; i++) {
-	sendDouble(cameraPosY + i);
-    }
-    for(i = 0; i < num_pts; i++) {
-	sendDouble(cameraPos1 + i);
-    }
-    for(i = 0; i < num_pts; i++) {
-	sendDouble(cameraPos2 + i);
-    }
-    for(i = 0; i< num_pts; i++) {
-    	sendDouble(objectX + i);
-    }
-    for(i = 0; i< num_pts; i++) {
-    	sendDouble(objectY + i);
-    }
-    for(i = 0; i< num_pts; i++) {
-    	sendDouble(objectTh + i);
+    for(i = 0; i<mum_pts; i++) {
+	sendDouble(objectY + i);
     }
     simpleReset();
 }
@@ -225,10 +216,12 @@ void procCmd4() {
     errorInt2 = 0;
     errorInt3 = 0;
     //Control mode 1 is go home
-    /* control_mode = 1; */
+    /* control_mode = GO_HOME_JOINTS; */
     globalIndex = -1;
-    //Control mode 7 is dynamic grasp maintain pos
-    control_mode = 7;
+    /* //Control mode 7 is dynamic grasp maintain pos */
+    /* control_mode = DYNAMIC_GRASP_POS; */
+    //Go to manipulator home position
+    control_mode = PID_MANIP_POS;
     //Tell PC we are starting to go home
     sendString("HOME\n");
     printf("Going home\n");
@@ -247,15 +240,17 @@ void procCmd5() {
     errorInt3 = 0;
     //These are different control modes
     //Feedforward control only
-    //control_mode = 3;
+    //control_mode = FEEDFORWARD_JOINTS;
     //Trajectories given are desired currents
-    //control_mode = 2;
+    //control_mode = TRAJ_IS_CURRENT;
     //Pure PID control
-    //control_mode = 4;
+    //control_mode = PID_TRAJ_JOINTS;
     //Feedforward + PID control
-    // control_mode = 5;
+    // control_mode = FF_PID_TRAJ_JOINTS;
     //Dynamic Grasp
-    control_mode = 6;
+    /* control_mode = DYNAMIC_GRASP_TRAJ; */
+    //Follow a manipulator trajectory
+    control_mode = FF_PID_TRAJ_MANIP;
 }
 
 //Get control gains
@@ -278,13 +273,13 @@ void procCmd7() {
     //Make sure we aren't running
     running = 0;
     //read the home positions
-    /* readDouble(&home1); */
-    /* readDouble(&home2); */
-    /* readDouble(&home3); */
+    readDouble(&home1);
+    readDouble(&home2);
+    readDouble(&home3);
     //Get object home positions
-    readDouble(&objHomeX);
-    readDouble(&objHomeY);
-    readDouble(&objHomeTh);
+    /* readDouble(&objHomeX); */
+    /* readDouble(&objHomeY); */
+    /* readDouble(&objHomeTh); */
     //We got home positions
     sendString("HOMEUPDATED\n");
 }
@@ -313,7 +308,7 @@ void procCmd9() {
     sendString("STOP\n");
     running = 0;
     globalIndex = -1;
-    control_mode = 0;
+    control_mode = NO_CONTROL;
     set_control_RH8(iobase, 0);
     set_control_RH11(iobase, 0);
     set_control_RH14(iobase, 0);

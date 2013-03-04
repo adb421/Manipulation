@@ -10,6 +10,18 @@
 
 #include "includes.h"
 
+//Control Modes
+#define NO_CONTROL         0  //apply no torques
+#define GO_HOME_JOINTS     1  //go to a specified joint home position
+#define TRAJ_IS_CURRENT    2  //trajectories given are desired motor currents
+#define FEEDFORWARD_JOINTS 3  //Feed forward only trajectory control, given as joint angle trajs
+#define PID_TRAJ_JOINTS    4  //PID trajectory control, given as joint angle trajs
+#define FF_PID_TRAJ_JOINTS 5  //Same as above, but with feed forward added
+#define DYNAMIC_GRASP_TRAJ 6  //Follow a trajectory assuming dynamic grasp, trajs are object pos
+#define DYNAMIC_GRASP_POS  7  //Go to a specified object pos, assume dyn grasp
+#define FF_PID_TRAJ_MANIP  8  //Follow a trajectory, trajs are manipulator pos (x,y,th)
+#define PID_MANIP_POS      9  //Go to a specified manipulator pos
+
 #define LOW_PRIORITY	30
 #define MEDIUM_PRIORITY 35
 #define HIGH_PRIORITY	40
@@ -85,6 +97,8 @@
 
 #define IRQ4	4
 
+#define ALPHA_FILTER (0.04)
+#define ALPHA_FILTER_CAM (0.13115)
 double current_position_RH8(uintptr_t iobase, int reset);
 double current_position_RH11(uintptr_t iobase, int reset);
 double current_position_RH14(uintptr_t iobase, int reset);
@@ -153,6 +167,13 @@ double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2;
 
 double contactPoint1, contactPoint2;
 
+double thRH14global, thRH11global, thRH8global;
+double xManip_global, yManip_global, thManip_global;
+double velRH14global;
+double velRH11global;
+double velRH8global;
+double velThManip_global, velXManip_global, velYManip_global;
 double xObjectGlobal, yObjectGlobal, thObjectGlobal;
-
+double velXObjectGlobal, velYObjectGlobal, velThObjectGlobal;
+double xManipCam_global, yManipCam_global;
 #endif /* ARM3DOF_H_ */

@@ -92,14 +92,14 @@ void convertToWorldFrame(double *x, double *y) {
 	double xVal, yVal;
 	xVal = *x;
 	yVal = *y;
-  double H_mat[8] = H_MAT_VALS;
-  double xLambda = xVal*H_mat[0] + yVal*H_mat[1] + H_mat[2];
-  double yLambda = xVal*H_mat[3] + yVal*H_mat[4] + H_mat[5];
-  double lambda  = xVal*H_mat[6] + yVal*H_mat[7] + 1.0;
-  xVal = xLambda/lambda;
-  yVal = yLambda/lambda;
-  *x = xVal;
-  *y = yVal;
+	double H_mat[8] = H_MAT_VALS;
+	double xLambda = xVal*H_mat[0] + yVal*H_mat[1] + H_mat[2];
+	double yLambda = xVal*H_mat[3] + yVal*H_mat[4] + H_mat[5];
+	double lambda  = xVal*H_mat[6] + yVal*H_mat[7] + 1.0;
+	xVal = xLambda/lambda;
+	yVal = yLambda/lambda;
+	*x = xVal;
+	*y = yVal;
 }
 
 void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *packet) {
@@ -204,11 +204,6 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     }
     //Calculate object world coordinates from marker location
     if(nObjects == DES_MARKERS) {
-	xObjectGlobal = (xGlobal[3] + xGlobal[4])/2.0;
-	yObjectGlobal = (yGlobal[3] + yGlobal[4])/2.0;
-	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
-	//Update contact points
-	arcLengthContactPoints();
 	newCameraData = 1;
     } else {
     //No new camera data, didn't get enough markers
