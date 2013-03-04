@@ -630,11 +630,19 @@ double controlManipAccel1(double xmdd, double ymdd, double thmdd) {
     static double th1Old = 0.0;
     static double th2Old = 0.0;
     static double th3Old = 0.0;
+    static int first = 1;
+    
+    double th1, th2, th3, th1d, th2d, th3d;
+    double c1, c2, c12, s1, s12, s2, c122, s122, c1_2, s1_2;
+    double staticFric, torqueDes;
+    if(first) {
+    	th1Old = current_position_RH14(iobase, 0);
+    	th2Old = current_position_RH11(iobase, 0);
+    	th3Old = current_position_RH8(iobase, 0);
+    	first = 0;
+    }
     if((globalIndex >= 0 && globalIndex < num_pts && running) || \
 	control_mode == 7) {
-	double th1, th2, th3, th1d, th2d, th3d;
-	double c1, c2, c12, s1, s12, s2, c122, s122, c1_2, s1_2;
-	double staticFric, torqueDes;
 	if(globalIndex >= 0 && globalIndex < num_pts) {
 	    th1 = position1[globalIndex];
 	    th2 = position2[globalIndex];
@@ -660,11 +668,13 @@ double controlManipAccel1(double xmdd, double ymdd, double thmdd) {
 	    th3Old = th3;
 	}
 
-	if(th2 < 0.01 & th2 > -0.01) return 0.0;
-	if(th1d >= 0.0)
+	if(abs(th2) < 0.01) return 0.0;
+	if(th1d > 0.01)
 	    staticFric = MUS1;
-	else
+	else if(th1d < -0.01)
 	    staticFric = -1.0*MUS1;
+	else
+	    staticFric = 0.0;
 	c1 = cos(th1);
 	c12 = cos(th1+th2);
 	s1 = sin(th1);
@@ -690,17 +700,26 @@ double controlManipAccel1(double xmdd, double ymdd, double thmdd) {
 					      L1*L2*(m2+2.0*m3+2.0*mm3)*s122))* \
 			  (L1*s1*th1d*th1d + L2*c2*s1*(th1d+th2d)*(th1d+th2d) +	\
 			   L2*c1*s2*(th1d+th2d)*(th1d+th2d) - ymdd) + 4.0*(I3+J3)*thmdd);
+    printf("staticFric: %f, th1d: %f, th2d: %f, th3d: %f\n",staticFric,th1d,th2d,th3d);
+    printf("Torque1: %f\n",torqueDes);
 	return torqueDes;
     } else return 0.0;
 }
 double controlManipAccel2(double xmdd, double ymdd, double thmdd) {
-    static th1Old = 0.0;
-    static th2Old = 0.0;
+    static double th1Old = 0.0;
+    static double th2Old = 0.0;
+    static int first = 1;
+    double th1, th2, th1d, th2d;
+    double c1, c2, c12, c122, s1, s2, s122;
+    double staticFric, torqueDes;
+    if(first) {
+    	th1Old = current_position_RH14(iobase, 0);
+    	th2Old = current_position_RH11(iobase, 0);
+    	first = 0;
+    }
     if((globalIndex >= 0 && globalIndex < num_pts && running) || \
 	control_mode == 7) {
-	double th1, th2, th1d, th2d;
-	double c1, c2, c12, c122, s1, s2, s122;
-	double staticFric, torqueDes;
+
 	if(globalIndex >= 0 && globalIndex < num_pts) {
 	    th1 = position1[globalIndex];
 	    th2 = position2[globalIndex];
@@ -718,11 +737,13 @@ double controlManipAccel2(double xmdd, double ymdd, double thmdd) {
 	    th2d = (th2 - th2Old)/DT;
 	}
 
-	if(th2 < 0.01 & th2 > -0.01) return 0.0;
-	if(th2d >= 0.0)
+	if(abs(th2) < 0.01) return 0.0;
+	if(th2d > 0.01)
 	    staticFric = MUS2;
-	else
+	else if(th2d < -0.01)
 	    staticFric = -1.0*MUS2;
+	else
+		staticFric = 0.0;
 	/* c1 = cos(th1); */
 	c2 = cos(th2);
 	c12 = cos(th1+th2);
@@ -745,10 +766,17 @@ double controlManipAccel2(double xmdd, double ymdd, double thmdd) {
 }
 
 double controlManipAccel3(double xmdd, double ymdd, double thmdd) {
+	if(control_mode == 7)
+		control_mode = 7;
     static double th3Old = 0.0;
+    static int first = 1;
+    double th3, staticFric, th3d;
+    if(first) {
+    	th3Old = current_position_RH8(iobase, 0);
+    	first = 0;
+    }
     if((globalIndex >= 0 && globalIndex < num_pts && running) || \
 	control_mode == 7) {
-	double th3, staticFric, th3d;
 	if(globalIndex > 0 && globalIndex < num_pts) {
 	    th3 = position3[globalIndex];
 	    if(globalIndex >0 ) {
@@ -760,10 +788,14 @@ double controlManipAccel3(double xmdd, double ymdd, double thmdd) {
 	    th3 = current_position_RH8(iobase, 0);
 	    th3d = (th3 - th3Old)/DT;
 	}
-	if(th3d >= 0.0)
+	if(th3d > 0.01)
 	    staticFric = MUS3;
-	else
+	else if(th3d < -0.01)
 	    staticFric = -1.0*MUS3;
+	else
+		staticFric = 0.0;
+
+	printf("staticFric: %f, th3d: %f, torque: %f\n", staticFric, th3d, staticFric + MUD3*th3d + (I3 + J3)*thmdd);
 
 	return staticFric + MUD3*th3d + (I3 + J3)*thmdd;
     } else return 0.0;
@@ -819,8 +851,14 @@ double calculateTrajAccel3(void) {
 //These controls are still fictitous, but they are translated by later functions to motor commands
 void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, double *ymdd, double *thmdd) {
     static int dyn_count = 0;
+    static int first = 1;
     static double thmOld = 0;
     double cm, sm, thmd, thm;
+    if(first) {
+    	thmOld = current_position_RH14(iobase, 0) + current_position_RH11(iobase, 0) + \
+    			current_position_RH8(iobase, 0);
+    	first = 0;
+    }
     if(globalIndex >= 0 && globalIndex < num_pts && running && contactPoint1 > -1.0) {
 	thm = position1[globalIndex] + position2[globalIndex] + position3[globalIndex];
 	cm = cos(thm);
@@ -870,7 +908,7 @@ void arcLengthContactPoints() {
 
     //Now, solve for contact point 1
     //Check if near singularity with cos, if so, use Y data points
-    if(abs(abs(thm) - M_PI/2.0) < 0.1 || abs(abs(thm) - 1.5*M_PI < 0.1))  {
+    if(abs(abs(thm) - M_PI/2.0) > 0.1 && abs(abs(thm) - 1.5*M_PI) > 0.1)  {
 	xc1 = xObjectGlobal - lo*cos(thObjectGlobal) + wo*sin(thObjectGlobal);
 	contactPoint1 = (xc1 + lm*cos(thm) + wm*sin(thm) - xm)/cos(thm);
     } else {
@@ -879,12 +917,17 @@ void arcLengthContactPoints() {
     }
     contactPoint2 = contactPoint1 + 2.0*lo;
     //print just to check if this makes sense
-    printf("xM: %f, yM: %f, thm: %f\n",xm,ym,thm);
-    printf("xo: %f, yo: %f, tho: %f\n",xObjectGlobal, yObjectGlobal,thObjectGlobal);
-    printf("s1: %f, s2: %f\n", contactPoint1, contactPoint2);
-    printf("xRH14: %f, yRH14: %f, thRH14: %f\n", xGlobal[0], yGlobal[0], th1);
-    printf("xRH11: %f, yRH11: %f, thRH11: %f\n", xGlobal[1], yGlobal[1], th2);
-    printf("xRH8: %f, yRH8: %f, thRH8: %f\n", xGlobal[2], yGlobal[2], th3);
-    printf("xMark1: %f, yMark1: %f\n",xGlobal[3], yGlobal[3]);
-    printf("xMark2: %f, xMark2: %f\n",xGlobal[4], yGlobal[4]);
+//    if(newCameraData) {
+//    printf("xM: %f, yM: %f, thm: %f\n",xm,ym,thm);
+//    printf("xo: %f, yo: %f, tho: %f\n",xObjectGlobal, yObjectGlobal, thObjectGlobal);
+//    printf("s1: %f, s2: %f\n", contactPoint1, contactPoint2);
+//    printf("xRH14: %f, yRH14: %f, thRH14: %f\n", xGlobal[0], yGlobal[0], th1);
+//    printf("xRH11: %f, yRH11: %f, thRH11: %f\n", xGlobal[1], yGlobal[1], th2);
+//    printf("xRH8: %f, yRH8: %f, thRH8: %f\n", xGlobal[2], yGlobal[2], th3);
+//    printf("xMark1: %f, yMark1: %f\n",xGlobal[3], yGlobal[3]);
+//    printf("xMark2: %f, yMark2: %f\n",xGlobal[4], yGlobal[4]);
+//    printf("Area1: %d, Area2: %d, Area3: %d, Area4: %d, Area5: %d\n", areaGlobal[0], \
+//    		areaGlobal[1], areaGlobal[2], areaGlobal[3], areaGlobal[4]);
+//    }
+//    else { printf("No new cam data");}
 }

@@ -91,13 +91,13 @@ void * vision_loop_thread(void *arg) {
 void convertToWorldFrame(double *x, double *y) {
 	double xVal, yVal;
 	xVal = *x;
-	yVal = *x;
-  const double H_mat[8] = H_MAT_VALS;
+	yVal = *y;
+  double H_mat[8] = H_MAT_VALS;
   double xLambda = xVal*H_mat[0] + yVal*H_mat[1] + H_mat[2];
   double yLambda = xVal*H_mat[3] + yVal*H_mat[4] + H_mat[5];
   double lambda  = xVal*H_mat[6] + yVal*H_mat[7] + 1.0;
   xVal = xLambda/lambda;
-  yVal = -1.0*yLambda/lambda;
+  yVal = yLambda/lambda;
   *x = xVal;
   *y = yVal;
 }
@@ -122,8 +122,8 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   /* } */
 
   //Camera specific variables
-  u_char *xChar, *yChar, *roundChar, *areaChar;
-  float x,y,round;
+  u_char *xChar, *yChar, *roundChar, *areaChar, *packetHolder;
+  float xF,yF,roundF;
   double xSum, ySum, xDub, yDub;
   int areaInt;
 
@@ -154,36 +154,46 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   size_payload = (int)(ntohs(udp->udp_len)) - SIZE_UDP;
   if((size_payload - 24)%20 != 0) {
     printf("Payload is weird size: %d\n", size_payload);
+    return;
   }
 
   //Check how many bytes we got!
   int nObjects = (size_payload - 24)/20;
+//  packetHolder = (u_char *)calloc(size_payload, sizeof(u_char));
+  int i;
+//  for(i = 0; i < size_payload; i++) {
+//	  packetHolder[i] = payload[i];
+//  }
   // printf("%d\n",nObjects);
-  if(nObjects >= 3) {
+  if(nObjects >= 3 && nObjects <= DES_MARKERS) {
     //printf("See %d\n", DES_MARKERS);
-    int i;
     for(i = 0; i < nObjects; i++) {
       currentObject = payload + 24 + 20*i;
       xChar = currentObject;
       yChar = currentObject + 4;
       roundChar = yChar + 4;
       areaChar = roundChar + 4;
-      x = *((float *)xChar);
-      y = *((float *)yChar);
-      xDub = (double)x;
-      yDub = (double)y;
-      round = *((float *)roundChar);
+      xF = *((float *)xChar);
+      yF = *((float *)yChar);
+      xDub = (double)xF;
+      yDub = (double)yF;
+      roundF = *((float *)roundChar);
       areaInt = *((int *)areaChar);
-      convertToWorldFrame(&xDub, &yDub);
       xGlobal[i] = xDub;
       yGlobal[i] = yDub;
       areaGlobal[i] = areaInt;
     }
+//    free(packetHolder);
     sortByArea(xGlobal, yGlobal, areaGlobal, nObjects);
     //Un-parrallax project motor heights
     for(i = 0; i < 3; i ++) {
     	//printf("x1: %f x2: %f x3: %f\n", xGlobal[0], xGlobal[1], xGlobal[2]);
     	Unprojected(xGlobal + i, yGlobal + i,i+1);
+    }
+    //Now do global rectification
+    for(i = 0; i < nObjects; i++) {
+    	yGlobal[i] = 832.0 - yGlobal[i];
+   	convertToWorldFrame(&(xGlobal[i]),&(yGlobal[i]));
     }
     X_OFFSET = -1.0*xGlobal[0];
     Y_OFFSET = -1.0*yGlobal[0];
@@ -198,7 +208,7 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
 	yObjectGlobal = (yGlobal[3] + yGlobal[4])/2.0;
 	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
 	//Update contact points
-	//arcLengthContactPoints();
+	arcLengthContactPoints();
 	newCameraData = 1;
     } else {
     //No new camera data, didn't get enough markers
@@ -236,7 +246,7 @@ void sortByArea(double *x, double *y, int* area, int nObjects) {
 	swapped = 1;
       }
     }
-    nObjects -= 1;
+//    nObjects = nObjects - 1;
   }
 }
 
@@ -256,9 +266,12 @@ double calculateJointTwoCamera() {
 void Unprojected(double *x, double *y, int motorSelection) {
     //Undo parralax projection
     //Need distance and direction from center point
-    double rad_dist = radialDistance(*x, *y);
+	double xVal, yVal;
+	xVal = *x;
+	yVal = *y;
+    double rad_dist = radialDistance(xVal, yVal);
     double rad_vec[2];
-    radialVector(*x, *y, rad_vec);
+    radialVector(xVal, yVal, rad_vec);
     //Similar triangles
     //Actual distance from camera
     double motor_height;
@@ -277,11 +290,9 @@ void Unprojected(double *x, double *y, int motorSelection) {
     }
     double act_dist =  rad_dist*(1.0 - motor_height/CAMERA_HEIGHT);
     //Scale the direction vector by the actual distance
-    rad_vec[0] = rad_vec[0] * act_dist;
-    rad_vec[1] = rad_vec[1] * act_dist;
     //Put these in x and y
-    *x = rad_vec[0];
-    *y = rad_vec[1];
+    *x = rad_vec[0]*act_dist + X_CAM_CENTER_WORLD_FRAME;
+    *y = rad_vec[1]*act_dist + Y_CAM_CENTER_WORLD_FRAME;
 }
 
 //Calculate the distance to directly below the camera
@@ -291,7 +302,7 @@ double radialDistance(double x, double y) {
 }
 
 //Calculate the direction from point directly below camera
-void radialVector(double x, double y, double* rad_vec) {
+void radialVector(double x, double y, double rad_vec[2]) {
     //Get distance in X
     double xDist = x - X_CAM_CENTER_WORLD_FRAME;
     double yDist = y - Y_CAM_CENTER_WORLD_FRAME;

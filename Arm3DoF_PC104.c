@@ -14,7 +14,7 @@ void * control_loop_thread(void *arg);
 
 int main(int argc, char *argv[]) {
   //Just let us know we're running
-  printf("Welcome to the 3 degree of freedom arm control!\n");
+  printf("Welcome to the 3 degree of freedom arm control! Maybe!\n");
 
   if(ThreadCtl(_NTO_TCTL_IO,0) == -1)
     printf("ThreadCtl fail\n");

@@ -388,6 +388,35 @@ void procCmd11() {
 
 //Contact point on manipulator in terms of arc length
 void procCmd12() {
-    arcLengthContactPoints();
+//    arcLengthContactPoints();
     sendString("CONTACTPOINT\n");
+    double xc1, xm, thm, yc1, ym, th1, th2, th3;
+        th1 = current_position_RH14(iobase, 0);
+        th2 = current_position_RH11(iobase, 0);
+        th3 = current_position_RH8(iobase, 0);
+        xm = -1.0*L1*cos(th1) - L2*cos(th1+th2);
+        ym = -1.0*L1*sin(th1) - L2*sin(th1+th2);
+        thm = th1 + th2 + th3;
+    //Calculate xc1 in terms of object coordinates
+
+        //Now, solve for contact point 1
+        //Check if near singularity with cos, if so, use Y data points
+        if(abs(abs(thm) - M_PI/2.0) > 0.1 && abs(abs(thm) - 1.5*M_PI) > 0.1)  {
+    	xc1 = xObjectGlobal - lo*cos(thObjectGlobal) + wo*sin(thObjectGlobal);
+    	contactPoint1 = (xc1 + lm*cos(thm) + wm*sin(thm) - xm)/cos(thm);
+        } else {
+    	yc1 = yObjectGlobal - wo*cos(thObjectGlobal) - lo*sin(thObjectGlobal);
+    	contactPoint1 = (yc1 - ym - wm*cos(thm) + lm*sin(thm))/sin(thm);
+        }
+        contactPoint2 = contactPoint1 + 2.0*lo;
+        printf("xM: %f, yM: %f, thm: %f\n",xm,ym,thm);
+        printf("xo: %f, yo: %f, tho: %f\n",xObjectGlobal, yObjectGlobal, thObjectGlobal);
+        printf("s1: %f, s2: %f\n", contactPoint1, contactPoint2);
+        printf("xRH14: %f, yRH14: %f, thRH14: %f\n", xGlobal[0], yGlobal[0], th1);
+        printf("xRH11: %f, yRH11: %f, thRH11: %f\n", xGlobal[1], yGlobal[1], th2);
+        printf("xRH8: %f, yRH8: %f, thRH8: %f\n", xGlobal[2], yGlobal[2], th3);
+        printf("xMark1: %f, yMark1: %f\n",xGlobal[3], yGlobal[3]);
+        printf("xMark2: %f, yMark2: %f\n",xGlobal[4], yGlobal[4]);
+        printf("Area1: %d, Area2: %d, Area3: %d, Area4: %d, Area5: %d\n", areaGlobal[0], \
+        		areaGlobal[1], areaGlobal[2], areaGlobal[3], areaGlobal[4]);
 }

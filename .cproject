@@ -41,8 +41,6 @@
 <tool errorParsers="org.eclipse.cdt.core.GLDErrorParser" id="com.qnx.qcc.tool.linker.454633533" name="QCC Linker" superClass="com.qnx.qcc.tool.linker">
 <option id="com.qnx.qcc.option.linker.libraries.1420182983" name="Libraries (-l)" superClass="com.qnx.qcc.option.linker.libraries" valueType="libs">
 <listOptionValue builtIn="false" value="socket"/>
-<listOptionValue builtIn="false" value="m"/>
-<listOptionValue builtIn="false" value="pcap"/>
 </option>
 <inputType id="com.qnx.qcc.inputType.linker.229574816" superClass="com.qnx.qcc.inputType.linker">
 <additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -372,7 +370,7 @@
 <buildTargets>
 <target name="ArmProject" path="x86" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 <buildCommand>make</buildCommand>
-<buildArguments></buildArguments>
+<buildArguments/>
 <buildTarget>ArmProject</buildTarget>
 <stopOnError>false</stopOnError>
 <useDefaultCommand>true</useDefaultCommand>
@@ -420,6 +418,11 @@
 </tool>
 <tool errorParsers="org.eclipse.cdt.core.GLDErrorParser" id="com.qnx.qcc.tool.linker.2067575311" name="QCC Linker" superClass="com.qnx.qcc.tool.linker">
 <option id="com.qnx.qcc.option.linker.debug.1921513666" name="Debug (-g)" superClass="com.qnx.qcc.option.linker.debug" value="true" valueType="boolean"/>
+<option id="com.qnx.qcc.option.linker.libraries.362091851" name="Libraries (-l)" superClass="com.qnx.qcc.option.linker.libraries" valueType="libs">
+<listOptionValue builtIn="false" value="socket"/>
+<listOptionValue builtIn="false" value="pcap"/>
+<listOptionValue builtIn="false" value="m"/>
+</option>
 <inputType id="com.qnx.qcc.inputType.linker.193549065" superClass="com.qnx.qcc.inputType.linker">
 <additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
 <additionalInput kind="additionalinput" paths="$(LIBS)"/>
@@ -748,7 +751,7 @@
 <buildTargets>
 <target name="ArmProject" path="x86" targetID="org.eclipse.cdt.build.MakeTargetBuilder">
 <buildCommand>make</buildCommand>
-<buildArguments></buildArguments>
+<buildArguments/>
 <buildTarget>ArmProject</buildTarget>
 <stopOnError>false</stopOnError>
 <useDefaultCommand>true</useDefaultCommand>
