@@ -97,8 +97,8 @@
 
 #define IRQ4	4
 
-#define ALPHA_FILTER (0.04)
-#define ALPHA_FILTER_CAM (0.13115)
+#define ALPHA_FILTER (0.4)
+#define ALPHA_FILTER_CAM (0.5)
 double current_position_RH8(uintptr_t iobase, int reset);
 double current_position_RH11(uintptr_t iobase, int reset);
 double current_position_RH14(uintptr_t iobase, int reset);
@@ -124,6 +124,9 @@ double controlManipAccel1(double xmdd, double ymdd, double thmdd);
 double controlManipAccel2(double xmdd, double ymdd, double thmdd);
 double controlManipAccel3(double xmdd, double ymdd, double thmdd);
 void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, double *ymdd, double *thmdd);
+double calculateJointAccelFromManipAccel1(double xmdd, double ymdd, double thmdd);
+double calculateJointAccelFromManipAccel2(double xmdd, double ymdd, double thmdd);
+double calculateJointAccelFromManipAccel3(double xmdd, double ymdd, double thmdd);
 uintptr_t iobase;
 uint16_t  DIO_word;
 
@@ -152,6 +155,8 @@ _uint64 longestLoopTime;
 double kp1, kp2, kp3;
 double kd1, kd2, kd3;
 double ki1, ki2, ki3;
+double kp1curr, kp2curr, kp3curr;
+double kd1curr, kd2curr, kd3curr;
 
 double error1, error2, error3;
 double errord1, errord2, errord3;

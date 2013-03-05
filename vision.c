@@ -165,6 +165,7 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
 //	  packetHolder[i] = payload[i];
 //  }
   // printf("%d\n",nObjects);
+  newCameraData = 0;//Don't update camera marker info while doing this
   if(nObjects >= 3 && nObjects <= DES_MARKERS) {
     //printf("See %d\n", DES_MARKERS);
     for(i = 0; i < nObjects; i++) {

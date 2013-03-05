@@ -163,7 +163,7 @@ void procCmd3() {
 	//		sendString(outBuf);
 	sendDouble(position3 + i);
     }
-    sendString("POSEND\n");
+//    sendString("POSEND\n");
     for(i = 0; i < num_pts; i++) {
 	//		sprintf(outBuf, "%f\n", controlVals1[i]);
 	//		sendString(outBuf);
@@ -186,7 +186,7 @@ void procCmd3() {
 	tempD = ((double)(loopTimes[i]))/1000000.0;
 	sendDouble(&tempD);
     }
-    sendString("END\n");
+    sendString("END\r\n");
     //Send back camera x pos, y pos, joint angles 1 and 2
     /* for(i = 0; i< num_pts; i++) { */
     /* 	sendDouble(objectX + i); */
@@ -201,7 +201,7 @@ void procCmd3() {
     for(i = 0; i<num_pts; i++) {
 	sendDouble(objectX + i);
     }
-    for(i = 0; i<mum_pts; i++) {
+    for(i = 0; i<num_pts; i++) {
 	sendDouble(objectY + i);
     }
     simpleReset();
@@ -211,7 +211,7 @@ void procCmd3() {
 void procCmd4() {
     //Make sure we aren't running a trajectory
     running = 0;
-    //Reset integral errorsbefore going home
+    //Reset integral errors before going home
     errorInt1 = 0;
     errorInt2 = 0;
     errorInt3 = 0;
@@ -264,6 +264,8 @@ void procCmd6() {
     readDouble(&kp1); readDouble(&kp2); readDouble(&kp3);
     readDouble(&kd1); readDouble(&kd2); readDouble(&kd3);
     readDouble(&ki1); readDouble(&ki2); readDouble(&ki3);
+    readDouble(&kp1curr); readDouble(&kp2curr); readDouble(&kp3curr);
+    readDouble(&kd1curr); readDouble(&kd2curr); readDouble(&kd3curr);
     //Tell PC we are done with control gains
     sendString("GAINSUPDATED\n");
 }
@@ -396,7 +398,7 @@ void procCmd12() {
 
         //Now, solve for contact point 1
         //Check if near singularity with cos, if so, use Y data points
-        if(abs(abs(thm) - M_PI/2.0) > 0.1 && abs(abs(thm) - 1.5*M_PI) > 0.1)  {
+        if(fabs(fabs(thm) - M_PI/2.0) > 0.1 && fabs(fabs(thm) - 1.5*M_PI) > 0.1)  {
     	xc1 = xObjectGlobal - lo*cos(thObjectGlobal) + wo*sin(thObjectGlobal);
     	contactPoint1 = (xc1 + lm*cos(thm) + wm*sin(thm) - xm)/cos(thm);
         } else {

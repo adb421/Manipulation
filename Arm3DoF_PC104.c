@@ -94,7 +94,7 @@ void * control_loop_thread(void *arg) {
 
   //control values as desired currents
   double desCur1, desCur2, desCur3;
-
+  int printTimer = 0;
   //Declare some variables for later
   double thRH14_prev, thRH11_prev, thRH8_prev, xManip_prev, yManip_prev, thManip_prev;
   double velRH14_prev, velRH11_prev, velRH8_prev, velXManip_prev, velYManip_prev, velThManip_prev;
@@ -118,6 +118,13 @@ void * control_loop_thread(void *arg) {
     thRH14global = current_position_RH14(iobase, 0);
     thRH11global = current_position_RH11(iobase, 0);
     thRH8global = current_position_RH8(iobase, 0);
+//    printTimer++;
+//    if(printTimer >= 1000) {
+//    	printf("xCam: %f, yCam: %f\n", xManipCam_global, yManipCam_global);
+//    	printf("xEnc: %f, yEnc: %f, thEnc: %f\n", xManip_global, yManip_global, thManip_global);
+//    	printf("th1: %f, th2: %f, th3: %f\n", thRH14global, thRH11global, thRH8global);
+//    	printTimer = 0;
+//    }
     velRH14_prev = velRH14global;
     velRH11_prev = velRH11global;
     velRH8_prev = velRH8global;
@@ -134,8 +141,8 @@ void * control_loop_thread(void *arg) {
     velXManip_prev = velXManip_global;
     velYManip_prev = velYManip_global;
     velThManip_prev = velThManip_global;
-    velXManip_global = (xManip_global - xManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velXManip_gloabl;
-    velYManip_global = (yManip_global - yManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velYManip_gloabl;
+    velXManip_global = (xManip_global - xManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velXManip_global;
+    velYManip_global = (yManip_global - yManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velYManip_global;
     velThManip_global = (thManip_global - thManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velThManip_global;
     if(newCameraData) {
 	//Calculate object positions
@@ -162,7 +169,7 @@ void * control_loop_thread(void *arg) {
       //Done before calculating controls because controls uses position arrays
       position1[globalIndex] = thRH14global;
       position2[globalIndex] = thRH11global;
-      position3[globalIndex] = thRH14Global;
+      position3[globalIndex] = thRH8global;
       /* objectX[globalIndex] = xObjectGlobal; */
       /* objectY[globalIndex] = yObjectGlobal; */
       /* objectTh[globalIndex] = thObjectGlobal; */
@@ -187,7 +194,7 @@ void * control_loop_thread(void *arg) {
     }
 
     //Check if we finished traj
-    if(globalIndex >=(num_pts -1) && control_mode != 7) {
+    if(globalIndex >=(num_pts -1) && num_pts > 1) {
       //No longer running
       running = 0;
       //Kill control
@@ -199,13 +206,22 @@ void * control_loop_thread(void *arg) {
     if((globalIndex < (num_pts -1)) && (globalIndex >= 0)) {
       globalIndex++;
     }
+    printTimer++;
+    if(printTimer >= 1000 && control_mode != NO_CONTROL) {
+    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3);
+    	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global);
+    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global);
+    	printf("th1d: %f, th2d: %f, th3d: %f\n", velRH14global, velRH11global, velRH8global);
+    	printf("errX: %f, errY: %f, errTh: %f\n", home1 - xManip_global, home2 - yManip_global, home3 - thManip_global);
+    	printTimer = 0;
+    }
 
     //Check post loop times to see how long loop takes, if we are doing a traj. Otherwise don't care.
     if((globalIndex < num_pts && globalIndex >= 0) && running) {
       ClockTime(CLOCK_REALTIME, NULL, &postLoop);
       //How much time in nanoseconds has elapsed?
       nsecElapsed = postLoop - preLoop;
-      //Is it the largest such elapsed time?
+      //Is it the largest such elapsed time
       loopTimes[globalIndex] = nsecElapsed;
       if(nsecElapsed > longestLoopTime)
 	longestLoopTime = nsecElapsed;
