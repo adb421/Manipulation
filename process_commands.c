@@ -104,9 +104,8 @@ void procCmd1() {
     objectX = (double *)calloc(num_pts, sizeof(double));
     objectY = (double *)calloc(num_pts, sizeof(double));
     objectTh = (double *)calloc(num_pts, sizeof(double));
-    desAccel1 = (double *)calloc(num_pts, sizeof(double));
-    desAccel2 = (double *)calloc(num_pts, sizeof(double));
-    desAccel3 = (double *)calloc(num_pts, sizeof(double));
+    cameraPosX = (double *)calloc(num_pts, sizeof(double));
+    cameraPosY = (double *)calloc(num_pts, sizeof(double));
     loopTimes = (_uint64 *)calloc(num_pts, sizeof(_uint64));
     //Check to make sure allocation went well
     if(controlVals3 != NULL) {
@@ -183,22 +182,28 @@ void procCmd3() {
 	sendDouble(controlVals3 + i);
     }
     for(i = 0; i < num_pts; i++) {
-    	sendDouble(desAccel1 + i);
+    	sendDouble(cameraPosX + i);
     }
     for(i = 0; i < num_pts; i++) {
-    	sendDouble(desAccel2 + i);
+    	sendDouble(cameraPosY + i);
     }
-    for(i = 0; i < num_pts; i++) {
-    	sendDouble(desAccel3 + i);
-    }
-//    double tempD;
-//    for(i = 0; i < num_pts; i++) {
-//	//		sprintf(outBuf, "%ull\n", loopTimes + i);
-//	//		sendString(outBuf);
-//	tempD = ((double)(loopTimes[i]))/1000000.0;
-//	sendDouble(&tempD);
-//    }
-    sendString("END\r\n");
+   double tempD;
+   for(i = 0; i < num_pts; i++) {
+	//		sprintf(outBuf, "%ull\n", loopTimes + i);
+	//		sendString(outBuf);
+	tempD = ((double)(loopTimes[i]))/1000000.0;
+	sendDouble(&tempD);
+   }
+   for(i = 0; i < num_pts; i++) {
+       sendDouble(objectX + i);
+   }
+   for(i = 0; i < num_pts; i++) {
+       sendDouble(objectY + i);
+   }
+   for(i = 0; i < num_pts; i++) {
+       sendDouble(objectTh + i);
+   }	   
+    sendString("END\n");
     simpleReset();
 }
 
@@ -211,12 +216,12 @@ void procCmd4() {
     errorInt2 = 0;
     errorInt3 = 0;
     //Control mode 1 is go home
-    control_mode = GO_HOME_JOINTS;
+//    control_mode = GO_HOME_JOINTS;
     globalIndex = -1;
     /* //Control mode 7 is dynamic grasp maintain pos */
-//    control_mode = DYNAMIC_GRASP_POS;
+    control_mode = DYNAMIC_GRASP_POS;
     //Go to manipulator home position
-    //control_mode = PID_MANIP_POS;
+//    control_mode = PID_MANIP_POS;
     //Tell PC we are starting to go home
     sendString("HOME\n");
     printf("Going home\n");
@@ -241,11 +246,11 @@ void procCmd5() {
     //Pure PID control
     //control_mode = PID_TRAJ_JOINTS;
     //Feedforward + PID control
-     control_mode = FF_PID_TRAJ_JOINTS;
+//     control_mode = FF_PID_TRAJ_JOINTS;
     //Dynamic Grasp
-//    control_mode = DYNAMIC_GRASP_TRAJ;
+    control_mode = DYNAMIC_GRASP_TRAJ;
     //Follow a manipulator trajectory
-    /* control_mode = FF_PID_TRAJ_MANIP; */
+//    control_mode = FF_PID_TRAJ_MANIP;
 }
 
 //Get control gains
@@ -259,8 +264,8 @@ void procCmd6() {
     readDouble(&kp1); readDouble(&kp2); readDouble(&kp3);
     readDouble(&kd1); readDouble(&kd2); readDouble(&kd3);
     readDouble(&ki1); readDouble(&ki2); readDouble(&ki3);
-    readDouble(&kp1curr); readDouble(&kp2curr); readDouble(&kp3curr);
-    readDouble(&kd1curr); readDouble(&kd2curr); readDouble(&kd3curr);
+//    readDouble(&kp1curr); readDouble(&kp2curr); readDouble(&kp3curr);
+//    readDouble(&kd1curr); readDouble(&kd2curr); readDouble(&kd3curr);
     //Tell PC we are done with control gains
     sendString("GAINSUPDATED\n");
 }
@@ -383,12 +388,12 @@ void procCmd12() {
 //    arcLengthContactPoints();
     sendString("CONTACTPOINT\n");
     double xc1, xm, thm, yc1, ym, th1, th2, th3;
-        th1 = current_position_RH14(iobase, 0);
-        th2 = current_position_RH11(iobase, 0);
-        th3 = current_position_RH8(iobase, 0);
-        xm = -1.0*L1*cos(th1) - L2*cos(th1+th2);
-        ym = -1.0*L1*sin(th1) - L2*sin(th1+th2);
-        thm = th1 + th2 + th3;
+        th1 = thRH14global;
+        th2 = thRH11global;
+        th3 = thRH8global;
+        xm = xManip_global;
+        ym = yManip_global;
+        thm = thManip_global;
     //Calculate xc1 in terms of object coordinates
 
         //Now, solve for contact point 1

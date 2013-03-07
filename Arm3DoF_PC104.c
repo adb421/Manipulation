@@ -145,25 +145,37 @@ void * control_loop_thread(void *arg) {
     velXManip_global = (xManip_global - xManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velXManip_global;
     velYManip_global = (yManip_global - yManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velYManip_global;
     velThManip_global = (thManip_global - thManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velThManip_global;
-//    if(newCameraData) {
-//	//Calculate object positions
-//	xObject_prev = xObjectGlobal;
-//	yObject_prev = yObjectGlobal;
-//	thObject_prev = thObjectGlobal;
-////	xObjectGlobal = (xGlobal[3] + yGlobal[4])/2.0;
-////	yObjectGlobal = (yGlobal[3] + yGlobal[4])/2.0;
-////	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
-////	//Update contact points
-////	arcLengthContactPoints();
-////	velXObject_prev = velXObjectGlobal;
-////	velYObject_prev = velYObjectGlobal;
-////	velThObject_prev = velThObjectGlobal;
-////	velXObjectGlobal = (xObjectGlobal - xObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + (1.0 - ALPHA_FILTER_CAM)*velXObject_prev;
-////	velYObjectGlobal = (yObjectGlobal - yObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + (1.0 - ALPHA_FILTER_CAM)*velYObject_prev;
-////	velThObjectGlobal = (thObjectGlobal - thObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + (1.0 - ALPHA_FILTER_CAM)*velThObject_prev;
-////	xManipCam_global = xGlobal[2];
-////	yManipCam_global = yGlobal[2];
-//    }
+    if(newCameraData) {
+	//Calculate object positions
+	xManipCam_global = xGlobal[2];
+	yManipCam_global = yGlobal[2];
+	xObjCam = (xGlobal[3] + yGlobal[4])/2.0;
+	yObjCam = (xGlobal[3] + yGlobal[4])/2.0;
+	thObjCam = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
+        //Assume contact mode is dynamic grasp
+	xObjectGlobal = xObjCam - xManipCam_global + xManip_global;
+	yObjectGlobal = yObjCam - yManipCam_global + yManip_global;
+	thObjectGlobal = thManip_global;
+	arcLengthContactPoints();
+	velXObject_prev = velXObjectGlobal;
+	velYObject_prev = velYObjectGlobal;
+	velThObject_prev = velThObjectGlobal;
+	velXObjectGlobal = (xObjectGlobal - xObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + \
+	    (1.0-ALPHA_FILTER_CAM)*velXObject_prev;
+	velYObjectGlobal = (yObjectGlobal - yObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + \
+	    (1.0-ALPHA_FILTER_CAM)*velYObject_prev;
+	velThObjectGlobal = (thObjectGlobal - thObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + \
+	    (1.0-ALPHA_FILTER_CAM)*velThObject_prev;
+	xObject_prev = xObjectGlobal;
+	yObject_prev = yObjectGlobal;
+	thObject_prev = thObjectGlobal;
+	newCameraData = 0;
+    } else {
+	//estimate new pos based on velocity
+	xObjectGlobal += velXObjectGlobal*DT;
+	yObjectGlobal += velYObjectGlobal*DT;
+	thObjectGlobal = thManip_global;
+    }
 
     if((globalIndex < num_pts && globalIndex >= 0) && running) {
       //We are executing a trajectory, record pos
@@ -171,9 +183,11 @@ void * control_loop_thread(void *arg) {
       position1[globalIndex] = thRH14global;
       position2[globalIndex] = thRH11global;
       position3[globalIndex] = thRH8global;
-//      objectX[globalIndex] = xObjectGlobal;
-//      objectY[globalIndex] = yObjectGlobal;
-//      objectTh[globalIndex] = thObjectGlobal;
+      objectX[globalIndex] = xObjectGlobal;
+      objectY[globalIndex] = yObjectGlobal;
+      objectTh[globalIndex] = thObjectGlobal;
+      cameraPosX[globalIndex] = xManipCam_global;
+      cameraPosY[globalIndex] = yManipCam_global;
     }
     //calculate control, even if we aren't running a trajectory
     /* desCur1 = calculateControl1(); */
@@ -206,17 +220,17 @@ void * control_loop_thread(void *arg) {
     if((globalIndex < (num_pts -1)) && (globalIndex >= 0)) {
       globalIndex++;
     }
-//    printTimer++;
-//    if(printTimer >= 1500 && control_mode != NO_CONTROL) {
-//    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3);
-//    	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global);
-//    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global);
-//    	printf("th1d: %f, th2d: %f, th3d: %f\n\n", velRH14global, velRH11global, velRH8global);
-////    	printf("xObj: %f, yObj: %f, thObj: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal);
-////    	printf("velXObj: %f, velYObj: %f, velthObj: %f\n", velXObjectGlobal, velYObjectGlobal, velThObjectGlobal);
-////    	printf("curr1: %f, curr2: %f, curr3: %f\n\n",desCur1, desCur2, desCur3);
-//    	printTimer = 0;
-//    }
+/*     printTimer++; */
+/*     if(printTimer >= 1500 && control_mode != NO_CONTROL) { */
+/* //    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3); */
+/* //    	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global); */
+/* //    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global); */
+/* //    	printf("th1d: %f, th2d: %f, th3d: %f\n\n", velRH14global, velRH11global, velRH8global); */
+/* //    	printf("xObj: %f, yObj: %f, thObj: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal); */
+/* //    	printf("velXObj: %f, velYObj: %f, velthObj: %f\n", velXObjectGlobal, velYObjectGlobal, velThObjectGlobal); */
+/* //    	printf("curr1: %f, curr2: %f, curr3: %f\n\n",desCur1, desCur2, desCur3); */
+/*     	printTimer = 0; */
+/*     } */
 
 
 

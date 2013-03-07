@@ -131,6 +131,8 @@ void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
 		  double th1ddot, double th2ddot, double th3ddot, \
 		  double th1dot, double th2dot, double th3dot, \
 		  double th1, double th2, double th3);
+void calculateJointAccelFromManipAccel(double xmdd, double ymdd, double thmdd, \
+				       double *th1dd, double *th2dd, double *th3dd);
 uintptr_t iobase;
 uint16_t  DIO_word;
 
@@ -159,8 +161,8 @@ _uint64 longestLoopTime;
 double kp1, kp2, kp3;
 double kd1, kd2, kd3;
 double ki1, ki2, ki3;
-double kp1curr, kp2curr, kp3curr;
-double kd1curr, kd2curr, kd3curr;
+//double kp1curr, kp2curr, kp3curr;
+//double kd1curr, kd2curr, kd3curr;
 
 double error1, error2, error3;
 double errord1, errord2, errord3;
@@ -173,7 +175,7 @@ double *objectX, *objectY, *objectTh;
 _uint64 *loopTimes;
 
 double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2;
-double *desAccel1, *desAccel2, *desAccel3;
+//double *desAccel1, *desAccel2, *desAccel3;
 
 double contactPoint1, contactPoint2;
 
