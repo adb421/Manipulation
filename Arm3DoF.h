@@ -97,8 +97,8 @@
 
 #define IRQ4	4
 
-#define ALPHA_FILTER (0.4)
-#define ALPHA_FILTER_CAM (0.5)
+#define ALPHA_FILTER (0.225)
+#define ALPHA_FILTER_CAM (0.35)
 double current_position_RH8(uintptr_t iobase, int reset);
 double current_position_RH11(uintptr_t iobase, int reset);
 double current_position_RH14(uintptr_t iobase, int reset);
@@ -127,6 +127,10 @@ void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, d
 double calculateJointAccelFromManipAccel1(double xmdd, double ymdd, double thmdd);
 double calculateJointAccelFromManipAccel2(double xmdd, double ymdd, double thmdd);
 double calculateJointAccelFromManipAccel3(double xmdd, double ymdd, double thmdd);
+void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
+		  double th1ddot, double th2ddot, double th3ddot, \
+		  double th1dot, double th2dot, double th3dot, \
+		  double th1, double th2, double th3);
 uintptr_t iobase;
 uint16_t  DIO_word;
 
@@ -169,6 +173,7 @@ double *objectX, *objectY, *objectTh;
 _uint64 *loopTimes;
 
 double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2;
+double *desAccel1, *desAccel2, *desAccel3;
 
 double contactPoint1, contactPoint2;
 

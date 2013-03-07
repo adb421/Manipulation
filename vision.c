@@ -214,7 +214,7 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     //pcap_breakloop((pcap_t *) args);
   }
   else {
-    printf("%d Objects\n",nObjects);
+  //  printf("%d Objects\n",nObjects);
   }
   ClockTime(CLOCK_REALTIME, NULL, &preLoop);
 }
