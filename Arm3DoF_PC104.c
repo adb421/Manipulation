@@ -101,6 +101,7 @@ void * control_loop_thread(void *arg) {
   double velRH14_prev, velRH11_prev, velRH8_prev, velXManip_prev, velYManip_prev, velThManip_prev;
   double xObject_prev, yObject_prev, thObject_prev;
   double velXObject_prev, velYObject_prev, velThObject_prev;
+  double thObjCam, xObjCam, yObjCam;
   
   //Used for timing. Initialize preLoop.
   ClockTime(CLOCK_REALTIME, NULL, &preLoop);
@@ -170,12 +171,12 @@ void * control_loop_thread(void *arg) {
 	yObject_prev = yObjectGlobal;
 	thObject_prev = thObjectGlobal;
 	newCameraData = 0;
-    } else {
+    } //else {
 	//estimate new pos based on velocity
-	xObjectGlobal += velXObjectGlobal*DT;
-	yObjectGlobal += velYObjectGlobal*DT;
-	thObjectGlobal = thManip_global;
-    }
+//	xObjectGlobal += velXObjectGlobal*DT;
+//	yObjectGlobal += velYObjectGlobal*DT;
+//	thObjectGlobal = thManip_global;
+//    }
 
     if((globalIndex < num_pts && globalIndex >= 0) && running) {
       //We are executing a trajectory, record pos
@@ -220,17 +221,17 @@ void * control_loop_thread(void *arg) {
     if((globalIndex < (num_pts -1)) && (globalIndex >= 0)) {
       globalIndex++;
     }
-/*     printTimer++; */
-/*     if(printTimer >= 1500 && control_mode != NO_CONTROL) { */
-/* //    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3); */
-/* //    	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global); */
-/* //    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global); */
-/* //    	printf("th1d: %f, th2d: %f, th3d: %f\n\n", velRH14global, velRH11global, velRH8global); */
-/* //    	printf("xObj: %f, yObj: %f, thObj: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal); */
-/* //    	printf("velXObj: %f, velYObj: %f, velthObj: %f\n", velXObjectGlobal, velYObjectGlobal, velThObjectGlobal); */
-/* //    	printf("curr1: %f, curr2: %f, curr3: %f\n\n",desCur1, desCur2, desCur3); */
-/*     	printTimer = 0; */
-/*     } */
+     printTimer++;
+     if(printTimer >= 1500 && control_mode != NO_CONTROL) {
+ //    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3); */
+ //    	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global); */
+ //    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global); */
+ //    	printf("th1d: %f, th2d: %f, th3d: %f\n\n", velRH14global, velRH11global, velRH8global); */
+     	printf("xObj: %f, yObj: %f, thObj: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal);
+     	printf("velXObj: %f, velYObj: %f, velthObj: %f\n", velXObjectGlobal, velYObjectGlobal, velThObjectGlobal);
+ //    	printf("curr1: %f, curr2: %f, curr3: %f\n\n",desCur1, desCur2, desCur3); */
+     	printTimer = 0;
+     }
 
 
 

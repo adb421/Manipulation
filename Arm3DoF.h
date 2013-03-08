@@ -99,6 +99,7 @@
 
 #define ALPHA_FILTER (0.225)
 #define ALPHA_FILTER_CAM (0.35)
+//#define ALPHA_FILTER_CAM 1.0
 double current_position_RH8(uintptr_t iobase, int reset);
 double current_position_RH11(uintptr_t iobase, int reset);
 double current_position_RH14(uintptr_t iobase, int reset);

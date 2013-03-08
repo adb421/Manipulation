@@ -226,9 +226,6 @@ void simpleReset() {
     set_control_RH11(iobase, 0);
     set_control_RH14(iobase, 0);
     //Can send back timing stuff now
-    char buf[100];
-    sprintf(buf,"%ull\n",longestLoopTime);
-    sendString(buf);
     longestLoopTime = 0;
     //Tell PC we reset
     sendString("RESET\n");
@@ -248,6 +245,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
     double torqueDes1, torqueDes2, torqueDes3;
     //erros in x, y, th
     double errorX, errorY, errorTh;
+    double errorXd, errorYd, errorThd;
 
     static double th1Prev = 0.0;
     static double th2Prev = 0.0;
@@ -1390,7 +1388,7 @@ void calculateJointAccelFromManipAccel(double xmdd, double ymdd, double thmdd, \
     th2d = velRH11global;
     //Can't do inverse dynamics near singularity of jacobian
     //Jacobian is singular if th2 = 0
-    if(fabs(th2) < 0.01) {
+    if(fabs(th2) < 0.001) {
 	*th1dd = th1ddOld;
 	*th2dd = th2ddOld;
 	*th3dd = th3ddOld;

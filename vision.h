@@ -19,8 +19,8 @@
 #define SIZE_ETHERNET 14 //Ethernet packet headers are always 14 bytes
 #define SIZE_UDP	  8  //UDP packet headers are always 8 bytes
 
-#define DES_MARKERS 3 //3 for camera, no objects
-//#define DES_MARKERS 5 //Two for object, 3 for camera
+//#define DES_MARKERS 3 //3 for camera, no objects
+#define DES_MARKERS 5 //Two for object, 3 for camera
 //#define X_OFFSET 0.0
 //#define Y_OFFSET 0.0
 //#define X_OFFSET (-0.51655)
