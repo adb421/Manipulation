@@ -79,7 +79,7 @@ double current_position_RH8(uintptr_t iobase, int reset){
 
     lastRH8 = currRH8;
     if(reset) {
-	total_countRH8 = (int)((-1.0*calculateJointTwoCamera() - calculateJointOneCamera())/M_PI*51200.0);
+	total_countRH8 = (int)((thObjectGlobal-calculateJointTwoCamera() - calculateJointOneCamera())/M_PI*51200.0);
 //		total_countRH8 = 0;
     }
     //total_countRH8 = read_encoder_1(iobase);
@@ -290,7 +290,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	//Now set desired accelerations
 	th1dd = kp1*error1 + kd1*errord1 + ki1*errorInt1;
 	th2dd = kp2*error2 + kd2*errord2 + ki2*errorInt2;
-//	th3dd = kp3*error3 + kd3*errord3 + ki3*errorInt3;
+	th3dd = kp3*error3 + kd3*errord3 + ki3*errorInt3;
 //	//Only for this test
 //	robotTorques(&torqueDes1, &torqueDes2, &torqueDes3,		 \
 //			 th1dd, th2dd, th3dd,				 \
@@ -381,9 +381,9 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	    errorTh = 2.0*M_PI + errorTh;
 	}
 	//calculate desired object acceleration
-	xodd =  errorX*kp1 + errorXd*kd1;
-	yodd =  errorY*kp2 + errorYd*kd2;
-	thodd = errorTh*kp3 + errorThd*kd3;
+	xodd =  45.0*errorX + 25.0*errorXd;//errorX*kp1 + errorXd*kd1;
+	yodd =  45.0*errorY + 25.0*errorYd;//errorY*kp2 + errorYd*kd2;
+	thodd = 45.0*errorTh + 20.0*errorThd;//errorTh*kp3 + errorThd*kd3;
 	dynamicGraspControl(xodd, yodd, thodd, &xmdd, &ymdd, &thmdd);
 	calculateJointAccelFromManipAccel(xmdd,ymdd,thmdd, &th1dd, &th2dd, &th3dd);
 	break;
@@ -1189,7 +1189,7 @@ double calculateTrajAccel3(void) {
 //Then calculates required manipulator accelerations (based on kinematic equations)
 //These controls are still fictitous, but they are translated by later functions to motor commands
 void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, double *ymdd, double *thmdd) {
-	static int printTimer = 0;
+    static int printTimer = 0;
     double cm, sm, thmd, thm;
     thm = thManip_global;
     thmd = velThManip_global;
@@ -1364,7 +1364,7 @@ void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
     if(control_mode == PID_MANIP_POS || control_mode == DYNAMIC_GRASP_POS || control_mode == GO_HOME_JOINTS)
     	staticFric = 0.0;
     else
-    	staticFric = 0.0;//MUS3;
+    	staticFric = MUS3;//MUS3;
     torqueFric3 = MUD3*th3dot;
 
     if(th3dot > 0.0)
@@ -1388,7 +1388,7 @@ void calculateJointAccelFromManipAccel(double xmdd, double ymdd, double thmdd, \
     th2d = velRH11global;
     //Can't do inverse dynamics near singularity of jacobian
     //Jacobian is singular if th2 = 0
-    if(fabs(th2) < 0.001) {
+    if(fabs(th2) < 0.005) {
 	*th1dd = th1ddOld;
 	*th2dd = th2ddOld;
 	*th3dd = th3ddOld;

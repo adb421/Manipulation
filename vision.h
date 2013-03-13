@@ -73,9 +73,9 @@ struct sniff_udp {
 //#define Y_CAM_CENTER_WORLD_FRAME (0.106985895888065)
 #define X_CAM_CENTER_WORLD_FRAME (416.0)
 #define Y_CAM_CENTER_WORLD_FRAME (416.0)
-#define RH14_HEIGHT (7.75*2.54/100.0) //7-3/4"
-#define RH11_HEIGHT (6.875*2.54/100.0) //6-7/8"
-#define RH8_HEIGHT  (5.625*2.54/100.0) //5-5/8"
+#define RH14_HEIGHT (0.20) //7-3/4"
+#define RH11_HEIGHT (0.18) //6-7/8"
+#define RH8_HEIGHT  (0.15) //15cm
 #define CAMERA_HEIGHT (68*2.54/100.0) //68"
 
 //Global variables

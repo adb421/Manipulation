@@ -102,7 +102,10 @@ void * control_loop_thread(void *arg) {
   double xObject_prev, yObject_prev, thObject_prev;
   double velXObject_prev, velYObject_prev, velThObject_prev;
   double thObjCam, xObjCam, yObjCam;
-  
+  double diffX, diffY, normAngle, normDistObject;
+
+  //Keep track of how many cycles its been since we got camera data
+  int cameraFrameCount = 0;
   //Used for timing. Initialize preLoop.
   ClockTime(CLOCK_REALTIME, NULL, &preLoop);
 
@@ -147,36 +150,58 @@ void * control_loop_thread(void *arg) {
     velYManip_global = (yManip_global - yManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velYManip_global;
     velThManip_global = (thManip_global - thManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velThManip_global;
     if(newCameraData) {
-	//Calculate object positions
+	cameraFrameCount++;
+	//Calculate object positionns
 	xManipCam_global = xGlobal[2];
 	yManipCam_global = yGlobal[2];
-	xObjCam = (xGlobal[3] + yGlobal[4])/2.0;
-	yObjCam = (xGlobal[3] + yGlobal[4])/2.0;
+	xObjCam = (xGlobal[3] + xGlobal[4])/2.0;
+	yObjCam = (yGlobal[3] + yGlobal[4])/2.0;
 	thObjCam = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
+	diffX = xObjCam - xManipCam_global; diffY = yObjCam - yManipCam_global;
+	normAngle = atan2(diffX, diffY) - thManip_global;
+	normDistObject = sqrt(pow(diffX,2.0) + pow(diffY,2.0));
+//	if((normDistObject*cos(normAngle) > (3*wo+wm) || normDistObject*sin(normAngle) > (3*lo+lm) ||
+//			contactPoint1 < -2.0 || contactPoint1 > 2*lo) \
+//			&& control_mode != 0) {
+//	    //Uh oh, contact was probably broken!
+//		printf("Control killed!\n");
+//	    control_mode = 0;
+//	}
         //Assume contact mode is dynamic grasp
-	xObjectGlobal = xObjCam - xManipCam_global + xManip_global;
-	yObjectGlobal = yObjCam - yManipCam_global + yManip_global;
-	thObjectGlobal = thManip_global;
+	//xObjectGlobal = xObjCam - xManipCam_global + xManip_global;
+	//yObjectGlobal = yObjCam - yManipCam_global + yManip_global;
+	//thObjectGlobal = thManip_global;
+	//Try this way:
+	xGlobal[3] = xGlobal[3] - xManipCam_global + xManip_global;
+	xGlobal[4] = xGlobal[4] - xManipCam_global + xManip_global;
+	yGlobal[3] = yGlobal[3] - yManipCam_global + yManip_global;
+	yGlobal[4] = yGlobal[4] - yManipCam_global + yManip_global;
+	xObjectGlobal = 0.5*(xGlobal[3] + xGlobal[4]);
+	yObjectGlobal = 0.5*(yGlobal[3] + yGlobal[4]);
+	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
+
 	arcLengthContactPoints();
 	velXObject_prev = velXObjectGlobal;
 	velYObject_prev = velYObjectGlobal;
 	velThObject_prev = velThObjectGlobal;
-	velXObjectGlobal = (xObjectGlobal - xObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + \
+	//Figure out how long its been since we got camera data, should always be 4, but maybe not!
+	velXObjectGlobal = (xObjectGlobal - xObject_prev)/(cameraFrameCount*DT)*ALPHA_FILTER_CAM + \
 	    (1.0-ALPHA_FILTER_CAM)*velXObject_prev;
-	velYObjectGlobal = (yObjectGlobal - yObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + \
+	velYObjectGlobal = (yObjectGlobal - yObject_prev)/(cameraFrameCount*DT)*ALPHA_FILTER_CAM + \
 	    (1.0-ALPHA_FILTER_CAM)*velYObject_prev;
-	velThObjectGlobal = (thObjectGlobal - thObject_prev)/(4.0*DT)*ALPHA_FILTER_CAM + \
+	velThObjectGlobal = (thObjectGlobal - thObject_prev)/(cameraFrameCount*DT)*ALPHA_FILTER_CAM + \
 	    (1.0-ALPHA_FILTER_CAM)*velThObject_prev;
 	xObject_prev = xObjectGlobal;
 	yObject_prev = yObjectGlobal;
 	thObject_prev = thObjectGlobal;
 	newCameraData = 0;
-    } //else {
+	cameraFrameCount = 0;
+    } else {
 	//estimate new pos based on velocity
 //	xObjectGlobal += velXObjectGlobal*DT;
 //	yObjectGlobal += velYObjectGlobal*DT;
 //	thObjectGlobal = thManip_global;
-//    }
+    }
 
     if((globalIndex < num_pts && globalIndex >= 0) && running) {
       //We are executing a trajectory, record pos
@@ -187,8 +212,12 @@ void * control_loop_thread(void *arg) {
       objectX[globalIndex] = xObjectGlobal;
       objectY[globalIndex] = yObjectGlobal;
       objectTh[globalIndex] = thObjectGlobal;
+//      cameraPosX[globalIndex] = xObjCam;
+//      cameraPosY[globalIndex] = yObjCam;
+//      cameraPosTh[globalIndex] = thObjCam;
       cameraPosX[globalIndex] = xManipCam_global;
       cameraPosY[globalIndex] = yManipCam_global;
+      cameraPosTh[globalIndex] = thObjCam;
     }
     //calculate control, even if we aren't running a trajectory
     /* desCur1 = calculateControl1(); */
@@ -222,13 +251,15 @@ void * control_loop_thread(void *arg) {
       globalIndex++;
     }
      printTimer++;
-     if(printTimer >= 1500 && control_mode != NO_CONTROL) {
+     if(printTimer >= 2000 ) {
  //    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3); */
  //    	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global); */
  //    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global); */
  //    	printf("th1d: %f, th2d: %f, th3d: %f\n\n", velRH14global, velRH11global, velRH8global); */
-     	printf("xObj: %f, yObj: %f, thObj: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal);
-     	printf("velXObj: %f, velYObj: %f, velthObj: %f\n", velXObjectGlobal, velYObjectGlobal, velThObjectGlobal);
+//     	printf("xObj: %f, yObj: %f, thObj: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal);
+//     	printf("velXObj: %f, velYObj: %f, velthObj: %f\n", velXObjectGlobal, velYObjectGlobal, velThObjectGlobal);
+    	printf("xManip_enc: %f, yManip_enc: %f, thManip_enc: %f\n", xManip_global, yManip_global, thManip_global);
+    	printf("xManip_cam: %f, yManip_cam: %f\n", xGlobal[2], yGlobal[2]);
  //    	printf("curr1: %f, curr2: %f, curr3: %f\n\n",desCur1, desCur2, desCur3); */
      	printTimer = 0;
      }
@@ -246,6 +277,5 @@ void * control_loop_thread(void *arg) {
 	longestLoopTime = nsecElapsed;
     }
     //Record "preloop time"
-
   }
 }

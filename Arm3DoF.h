@@ -72,18 +72,25 @@
 #define I_MOUNT (M_MOUNT*(L_MOUNT*L_MOUNT + W_MOUNT*W_MOUNT)/12.0)
 #define RECT_MANIP
 #ifdef RECT_MANIP
-#define lm (0.115) // 23cm, divide by 2, in m
-#define wm (0.04) // 8cm, divide by 2, in m
-#define m3 (0.125 + M_MOUNT) // 125g
+#define lm (0.09) // 18cm, divide by 2, in m
+#define wm (0.0255) // 5.2cm, divide by 2, in m
+#define m3 (0.1146 + M_MOUNT) // 114.6g
 #define I3 (((m3-M_MOUNT)*(4.0*lm*lm + 4.0*wm*wm))/12.0) + I_MOUNT // m(h^2 + w^2)/ 12
 #endif
 
 //Object parameters
-#define SQUARE_OBJECT
+//#define SQUARE_OBJECT
+#define RECT_OBJECT
 #ifdef SQUARE_OBJECT
 #define lo (0.05) //10cm, divide by 2, in m
 #define wo (0.05)
 #define mo (0.06) //60 g
+#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0); // m(h^2 + w^2)/12
+#endif
+#ifdef RECT_OBJECT
+#define wo (.026) //5.2cm, divide by 2, 2.6
+#define lo (.0425)  //8.5cm, divide by 2, 4.25
+#define mo (0.088) // 51 g
 #define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0); // m(h^2 + w^2)/12
 #endif
 
@@ -175,7 +182,7 @@ double *controlVals1, *controlVals2, *controlVals3;
 double *objectX, *objectY, *objectTh;
 _uint64 *loopTimes;
 
-double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2;
+double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2, *cameraPosTh;
 //double *desAccel1, *desAccel2, *desAccel3;
 
 double contactPoint1, contactPoint2;
