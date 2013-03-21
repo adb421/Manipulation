@@ -56,10 +56,10 @@ int main(int argc, char *argv[]) {
   tcpip_com_sched_params.sched_priority = LOW_PRIORITY;
   vision_loop_sched_params.sched_priority = MEDIUM_PRIORITY;
   control_loop_sched_params.sched_priority = HIGH_PRIORITY;
-  pthread_setschedparam(tcpip_com_rec_thread_id, SCHED_RR, &tcpip_com_sched_params);
-  pthread_setschedparam(tcpip_com_send_thread_id, SCHED_RR, &tcpip_com_sched_params);
-  pthread_setschedparam(control_loop_thread_id, SCHED_RR, &control_loop_sched_params);
-  pthread_setschedparam(vision_loop_thread_id, SCHED_RR, &vision_loop_sched_params);
+  pthread_setschedparam(tcpip_com_rec_thread_id, SCHED_FIFO, &tcpip_com_sched_params);
+  pthread_setschedparam(tcpip_com_send_thread_id, SCHED_FIFO, &tcpip_com_sched_params);
+  pthread_setschedparam(control_loop_thread_id, SCHED_FIFO, &control_loop_sched_params);
+  pthread_setschedparam(vision_loop_thread_id, SCHED_FIFO, &vision_loop_sched_params);
 
   while(1) {
     //sched_yield(); This uses more kernel time, use sleep instead. Sleep for second at a time. Could change this.
@@ -92,6 +92,7 @@ void * control_loop_thread(void *arg) {
   _uint64 postLoop = 0;
   //Number of nanoseconds passed
   _uint64 nsecElapsed = 0;
+  _uint64 looptimesum = 0;
 
   //control values as desired currents
   double desCur1, desCur2, desCur3;
@@ -123,16 +124,11 @@ void * control_loop_thread(void *arg) {
     thRH14global = current_position_RH14(iobase, 0);
     thRH11global = current_position_RH11(iobase, 0);
     thRH8global = current_position_RH8(iobase, 0);
-//    printTimer++;
-//    if(printTimer >= 1000) {
-//    	printf("xCam: %f, yCam: %f\n", xManipCam_global, yManipCam_global);
-//    	printf("xEnc: %f, yEnc: %f, thEnc: %f\n", xManip_global, yManip_global, thManip_global);
-//    	printf("th1: %f, th2: %f, th3: %f\n", thRH14global, thRH11global, thRH8global);
-//    	printTimer = 0;
-//    }
+    //Update velocities
     velRH14_prev = velRH14global;
     velRH11_prev = velRH11global;
     velRH8_prev = velRH8global;
+    //Apply RC lowpass filter
     velRH14global = (thRH14global - thRH14_prev)/DT*ALPHA_FILTER + (1.0-ALPHA_FILTER)*velRH14_prev;
     velRH11global = (thRH11global - thRH11_prev)/DT*ALPHA_FILTER + (1.0-ALPHA_FILTER)*velRH11_prev;
     velRH8global = (thRH8global - thRH8_prev)/DT*ALPHA_FILTER + (1.0-ALPHA_FILTER)*velRH8_prev;
@@ -140,38 +136,27 @@ void * control_loop_thread(void *arg) {
     xManip_prev = xManip_global;
     yManip_prev = yManip_global;
     thManip_prev = thManip_global;
+    //Use forward kinematics to calculate manipulator end point position
     xManip_global = -1.0*L1*cos(thRH14global) - L2*cos(thRH14global+thRH11global);
     yManip_global = -1.0*L1*sin(thRH14global) - L2*sin(thRH14global+thRH11global);
-    thManip_global = thRH14global + thRH11global+thRH8global;
+    thManip_global = thRH14global + thRH11global + thRH8global;
+    //Update velocities
     velXManip_prev = velXManip_global;
     velYManip_prev = velYManip_global;
     velThManip_prev = velThManip_global;
     velXManip_global = (xManip_global - xManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velXManip_global;
     velYManip_global = (yManip_global - yManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velYManip_global;
     velThManip_global = (thManip_global - thManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velThManip_global;
+    cameraFrameCount++;
     if(newCameraData) {
-	cameraFrameCount++;
-	//Calculate object positionns
+	//Calculate object positions
 	xManipCam_global = xGlobal[2];
 	yManipCam_global = yGlobal[2];
-	xObjCam = (xGlobal[3] + xGlobal[4])/2.0;
-	yObjCam = (yGlobal[3] + yGlobal[4])/2.0;
-	thObjCam = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
-	diffX = xObjCam - xManipCam_global; diffY = yObjCam - yManipCam_global;
-	normAngle = atan2(diffX, diffY) - thManip_global;
-	normDistObject = sqrt(pow(diffX,2.0) + pow(diffY,2.0));
-//	if((normDistObject*cos(normAngle) > (3*wo+wm) || normDistObject*sin(normAngle) > (3*lo+lm) ||
-//			contactPoint1 < -2.0 || contactPoint1 > 2*lo) \
-//			&& control_mode != 0) {
-//	    //Uh oh, contact was probably broken!
-//		printf("Control killed!\n");
-//	    control_mode = 0;
-//	}
-        //Assume contact mode is dynamic grasp
-	//xObjectGlobal = xObjCam - xManipCam_global + xManip_global;
-	//yObjectGlobal = yObjCam - yManipCam_global + yManip_global;
-	//thObjectGlobal = thManip_global;
-	//Try this way:
+	if(fabs(xManipCam_global) > 10 || fabs(yManipCam_global) > 10)
+		printf("Saw large val problem\n");
+	//xObjCam = (xGlobal[3] + xGlobal[4])/2.0;
+	//yObjCam = (yGlobal[3] + yGlobal[4])/2.0;
+	//thObjCam = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
 	xGlobal[3] = xGlobal[3] - xManipCam_global + xManip_global;
 	xGlobal[4] = xGlobal[4] - xManipCam_global + xManip_global;
 	yGlobal[3] = yGlobal[3] - yManipCam_global + yManip_global;
@@ -179,8 +164,19 @@ void * control_loop_thread(void *arg) {
 	xObjectGlobal = 0.5*(xGlobal[3] + xGlobal[4]);
 	yObjectGlobal = 0.5*(yGlobal[3] + yGlobal[4]);
 	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
+	//Is this right?
+//	if(thObjectGlobal - thObject_prev >= 3)
+//	    thObjectGlobal -= 2.0*M_PI;
+//	else if(thObject_prev - thObjectGlobal >= 3)
+//	    thObjectGlobal += 2.0*M_PI;
 
-	arcLengthContactPoints();
+	normDistObject = sqrt(pow(xObjectGlobal - xManip_global,2) + pow(yObjectGlobal - yManip_global,2));
+	if(normDistObject > 3.0*lc && control_mode == ONE_POINT_ROLL_BALANCE) {
+		control_mode = 0;
+		printf("Control killed, contact lost\n");
+	}
+
+	/* arcLengthContactPoints(); */
 	velXObject_prev = velXObjectGlobal;
 	velYObject_prev = velYObjectGlobal;
 	velThObject_prev = velThObjectGlobal;
@@ -242,7 +238,11 @@ void * control_loop_thread(void *arg) {
       //No longer running
       running = 0;
       //Kill control
-      control_mode = 0;
+      control_mode = NO_CONTROL;
+      errorInt1 = 0;
+      errorInt2 = 0;
+      errorInt3 = 0;
+//      control_mode = PID_MANIP_POS;
       //Reset globalIndex
       globalIndex = -1;
     }
@@ -250,25 +250,28 @@ void * control_loop_thread(void *arg) {
     if((globalIndex < (num_pts -1)) && (globalIndex >= 0)) {
       globalIndex++;
     }
-     printTimer++;
-     if(printTimer >= 2000 ) {
- //    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3); */
- //    	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global); */
- //    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global); */
- //    	printf("th1d: %f, th2d: %f, th3d: %f\n\n", velRH14global, velRH11global, velRH8global); */
+//     printTimer++;
+//     if(printTimer >= 2000 ) {
+// //    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3); */
+////     	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global);
+// //    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global); */
+// //    	printf("th1d: %f, th2d: %f, th3d: %f\n\n", velRH14global, velRH11global, velRH8global); */
 //     	printf("xObj: %f, yObj: %f, thObj: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal);
 //     	printf("velXObj: %f, velYObj: %f, velthObj: %f\n", velXObjectGlobal, velYObjectGlobal, velThObjectGlobal);
-    	printf("xManip_enc: %f, yManip_enc: %f, thManip_enc: %f\n", xManip_global, yManip_global, thManip_global);
-    	printf("xManip_cam: %f, yManip_cam: %f\n", xGlobal[2], yGlobal[2]);
- //    	printf("curr1: %f, curr2: %f, curr3: %f\n\n",desCur1, desCur2, desCur3); */
-     	printTimer = 0;
-     }
+//    	printf("xManip_enc: %f, yManip_enc: %f, thManip_enc: %f\n", xManip_global, yManip_global, thManip_global);
+//    	printf("xManip_cam: %f, yManip_cam: %f\n", xGlobal[2], yGlobal[2]);
+//    	printf("velXMan: %f, velYMan: %f, velThMan: %f\n", velXManip_global, velYManip_global, velThManip_global);
+//     	printf("curr1: %f, curr2: %f, curr3: %f\n",desCur1, desCur2, desCur3);
+//     	printf("Avg loop time: %f\n\n",looptimesum/1000000.0/2000.0);
+//     	looptimesum = 0;
+//     	printTimer = 0;
+//     }
 
 
 
     //Check post loop times to see how long loop takes, if we are doing a traj. Otherwise don't care.
+     ClockTime(CLOCK_REALTIME, NULL, &postLoop);
     if((globalIndex < num_pts && globalIndex >= 0) && running) {
-      ClockTime(CLOCK_REALTIME, NULL, &postLoop);
       //How much time in nanoseconds has elapsed?
       nsecElapsed = postLoop - preLoop;
       //Is it the largest such elapsed time
@@ -276,6 +279,7 @@ void * control_loop_thread(void *arg) {
       if(nsecElapsed > longestLoopTime)
 	longestLoopTime = nsecElapsed;
     }
+//    looptimesum += postLoop - preLoop;
     //Record "preloop time"
   }
 }

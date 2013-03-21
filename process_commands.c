@@ -61,6 +61,10 @@ void process_cmd() {
 	//Calculate contact points on manipulator in terms of arclength
 	procCmd12();
 	break;
+    case 13:
+    //Get LQR gain matrix
+    procCmd13();
+    break;
     case -1:
 	printf("Couldn't read a command\n");
 	break;
@@ -145,8 +149,8 @@ void procCmd3() {
     char outBuf[100];
     //Make sure we aren't running
     running = 0;
-    //Set control mode to 0, no control
-    control_mode = NO_CONTROL;
+    ////Set control mode to 0, no control
+    //control_mode = NO_CONTROL;
     //Reset global index
     globalIndex = -1;
     //Send data back (sendData();
@@ -223,7 +227,7 @@ void procCmd4() {
 //    control_mode = GO_HOME_JOINTS;
     globalIndex = -1;
     /* //Control mode 7 is dynamic grasp maintain pos */
-    control_mode = DYNAMIC_GRASP_POS;
+    //control_mode = DYNAMIC_GRASP_POS;
     //Go to manipulator home position
     control_mode = PID_MANIP_POS;
     //Tell PC we are starting to go home
@@ -254,7 +258,12 @@ void procCmd5() {
     //Dynamic Grasp
  //   control_mode = DYNAMIC_GRASP_TRAJ;
     //Follow a manipulator trajectory
-    control_mode = FF_PID_TRAJ_MANIP;
+    //control_mode = FF_PID_TRAJ_MANIP;
+    //BALANCE THAT ISH
+    control_mode = ONE_POINT_ROLL_BALANCE;
+//    home1 = traj1[num_pts - 1];
+//    home2 = traj2[num_pts - 1];
+//    home3 = traj3[num_pts - 1];
 }
 
 //Get control gains
@@ -420,4 +429,16 @@ void procCmd12() {
         printf("xMark2: %f, yMark2: %f\n",xGlobal[4], yGlobal[4]);
         printf("Area1: %d, Area2: %d, Area3: %d, Area4: %d, Area5: %d\n", areaGlobal[0], \
         		areaGlobal[1], areaGlobal[2], areaGlobal[3], areaGlobal[4]);
+}
+
+void procCmd13() {
+    //Tell PC we are ready to get control gains
+    sendString("LQRGAINS\n");
+    //Get control gains from PC
+    //goes proportional (1/2/3), derivative (1/2/3), then integral (1/2/3)
+    int i;
+    for(i = 0; i < 24; i++) {
+    	readDouble(&(K_lqr[i]));
+    }
+    sendString("LQRUPDATED\n");
 }

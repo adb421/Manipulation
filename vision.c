@@ -159,15 +159,9 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
 
   //Check how many bytes we got!
   int nObjects = (size_payload - 24)/20;
-//  packetHolder = (u_char *)calloc(size_payload, sizeof(u_char));
   int i;
-//  for(i = 0; i < size_payload; i++) {
-//	  packetHolder[i] = payload[i];
-//  }
-  // printf("%d\n",nObjects);
   newCameraData = 0;//Don't update camera marker info while doing this
   if(nObjects >= 3 && nObjects <= DES_MARKERS) {
-    //printf("See %d\n", DES_MARKERS);
     for(i = 0; i < nObjects; i++) {
       currentObject = payload + 24 + 20*i;
       xChar = currentObject;
@@ -184,17 +178,15 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
       yGlobal[i] = yDub;
       areaGlobal[i] = areaInt;
     }
-//    free(packetHolder);
     sortByArea(xGlobal, yGlobal, areaGlobal, nObjects);
     //Un-parrallax project motor heights
     for(i = 0; i < 3; i ++) {
-    	//printf("x1: %f x2: %f x3: %f\n", xGlobal[0], xGlobal[1], xGlobal[2]);
-    	Unprojected(xGlobal + i, yGlobal + i,i+1);
+    	Unprojected(xGlobal + i, yGlobal + i, i+1);
     }
     //Now do global rectification
     for(i = 0; i < nObjects; i++) {
     	yGlobal[i] = 832.0 - yGlobal[i];
-   	convertToWorldFrame(&(xGlobal[i]),&(yGlobal[i]));
+    	convertToWorldFrame(xGlobal + i,yGlobal + i);
     }
     X_OFFSET = -1.0*xGlobal[0];
     Y_OFFSET = -1.0*yGlobal[0];
@@ -210,16 +202,13 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     //No new camera data, didn't get enough markers
     newCameraData = 0;
     }
-    //printf("Wrote %d\n",DES_MARKERS);
-    //pcap_breakloop((pcap_t *) args);
-  }
-  else {
-  //  printf("%d Objects\n",nObjects);
+  } else {
+   // printf("%d Markers\n",nObjects);
   }
   ClockTime(CLOCK_REALTIME, NULL, &preLoop);
 }
 
-void sortByArea(double *x, double *y, int* area, int nObjects) {
+void sortByArea(double *x, double *y, int *area, int nObjects) {
   //Implement via bubblesort
   int swapped = 1;
   int i;
@@ -229,20 +218,19 @@ void sortByArea(double *x, double *y, int* area, int nObjects) {
     swapped = 0;
     for(i = 0; i < nObjects - 1; i++) {
       if(area[i] < area[i+1]) {
-	areaTemp = area[i];
-	xTemp = x[i];
-	yTemp = y[i];
-	//Now swap
-	area[i] = area[i+1];
-	x[i] = x[i+1];
-	y[i] = y[i+1];
-	area[i+1] = areaTemp;
-	x[i+1] = xTemp;
-	y[i+1] = yTemp;
-	swapped = 1;
+    	  areaTemp = area[i];
+    	  xTemp = x[i];
+    	  yTemp = y[i];
+    	  //Now swap
+    	  area[i] = area[i+1];
+    	  x[i] = x[i+1];
+    	  y[i] = y[i+1];
+    	  area[i+1] = areaTemp;
+    	  x[i+1] = xTemp;
+    	  y[i+1] = yTemp;
+    	  swapped = 1;
       }
     }
-//    nObjects = nObjects - 1;
   }
 }
 
@@ -298,7 +286,7 @@ double radialDistance(double x, double y) {
 }
 
 //Calculate the direction from point directly below camera
-void radialVector(double x, double y, double rad_vec[2]) {
+void radialVector(double x, double y, double* rad_vec) {
     //Get distance in X
     double xDist = x - X_CAM_CENTER_WORLD_FRAME;
     double yDist = y - Y_CAM_CENTER_WORLD_FRAME;

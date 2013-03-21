@@ -21,6 +21,7 @@
 #define DYNAMIC_GRASP_POS  7  //Go to a specified object pos, assume dyn grasp
 #define FF_PID_TRAJ_MANIP  8  //Follow a trajectory, trajs are manipulator pos (x,y,th)
 #define PID_MANIP_POS      9  //Go to a specified manipulator pos
+#define ONE_POINT_ROLL_BALANCE 10 // Balance one point rolling, stabilize a ponit
 
 #define LOW_PRIORITY	30
 #define MEDIUM_PRIORITY 35
@@ -35,6 +36,39 @@
 
 #define LOOP_TIME_NSEC (1000000) //1ms
 #define DT			   (0.001) //time in seconds
+
+//LQR Point Roll Balance points
+#define X_OBJ_ROLL_GOAL (-0.25)
+#define Y_OBJ_ROLL_GOAL (-0.1)
+
+//LQR gains, do it this way for now IM LAZY
+#define K11 (0.0083)
+#define K12 (0.0221)
+#define K13 (-9.997)
+#define K14 (-16.5494)
+#define K15 (0.0)
+#define K16 (0.0)
+#define K17 (47.5807)
+#define K18 (10.5380)
+
+#define K21 (0.0)
+#define K22 (0.0)
+#define K23 (0.0)
+#define K24 (0.0)
+#define K25 (10.0)
+#define K26 (10.9545)
+#define K27 (0.0)
+#define K28 (0.0)
+
+#define K31 (0.3161)
+#define K32 (0.8557)
+#define K33 (0.2613)
+#define K34 (0.4415)
+#define K35 (0.0)
+#define K36 (0.0)
+#define K37 (1.2101)
+#define K38 (-0.2687)
+
 
 //From motor data sheet
 #define KM1		(2.92)
@@ -85,13 +119,16 @@
 #define lo (0.05) //10cm, divide by 2, in m
 #define wo (0.05)
 #define mo (0.06) //60 g
-#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0); // m(h^2 + w^2)/12
+#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
+#define OBJECT_ANGLE (M_PI/4.0) //atan(wo/lo)
 #endif
 #ifdef RECT_OBJECT
 #define wo (.026) //5.2cm, divide by 2, 2.6
 #define lo (.0425)  //8.5cm, divide by 2, 4.25
 #define mo (0.088) // 51 g
-#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0); // m(h^2 + w^2)/12
+#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
+#define lc (0.04956)
+#define OBJECT_ANGLE (0.5490) //atan(wo/lo)
 #endif
 
 //Home PI controls
@@ -104,7 +141,7 @@
 
 #define IRQ4	4
 
-#define ALPHA_FILTER (0.225)
+#define ALPHA_FILTER (0.2)
 #define ALPHA_FILTER_CAM (0.35)
 //#define ALPHA_FILTER_CAM 1.0
 double current_position_RH8(uintptr_t iobase, int reset);
@@ -119,22 +156,22 @@ double calculateTrajVel3();
 double calculateTrajAccel1();
 double calculateTrajAccel2();
 double calculateTrajAccel3();
-double feedForward1();
-double feedForward2();
-double feedForward3();
+//double feedForward1();
+//double feedForward2();
+//double feedForward3();
 void set_control_RH8(uintptr_t iobase, double desCurrent);
 void set_control_RH11(uintptr_t iobase, double desCurrent);
 void set_control_RH14(uintptr_t iobase, double desCurrent);
 void initialize_variables();
 void initialize_junus(uintptr_t iobase);
 void simpleReset();
-double controlManipAccel1(double xmdd, double ymdd, double thmdd);
-double controlManipAccel2(double xmdd, double ymdd, double thmdd);
-double controlManipAccel3(double xmdd, double ymdd, double thmdd);
+//double controlManipAccel1(double xmdd, double ymdd, double thmdd);
+//double controlManipAccel2(double xmdd, double ymdd, double thmdd);
+//double controlManipAccel3(double xmdd, double ymdd, double thmdd);
 void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, double *ymdd, double *thmdd);
-double calculateJointAccelFromManipAccel1(double xmdd, double ymdd, double thmdd);
-double calculateJointAccelFromManipAccel2(double xmdd, double ymdd, double thmdd);
-double calculateJointAccelFromManipAccel3(double xmdd, double ymdd, double thmdd);
+//double calculateJointAccelFromManipAccel1(double xmdd, double ymdd, double thmdd);
+//double calculateJointAccelFromManipAccel2(double xmdd, double ymdd, double thmdd);
+//double calculateJointAccelFromManipAccel3(double xmdd, double ymdd, double thmdd);
 void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
 		  double th1ddot, double th2ddot, double th3ddot, \
 		  double th1dot, double th2dot, double th3dot, \
@@ -144,17 +181,17 @@ void calculateJointAccelFromManipAccel(double xmdd, double ymdd, double thmdd, \
 uintptr_t iobase;
 uint16_t  DIO_word;
 
-int currRH14;
-int currRH11;
-int currRH8;
+//int currRH14;
+//int currRH11;
+//int currRH8;
 
-int lastRH14;
-int lastRH11;
-int lastRH8;
+//int lastRH14;
+//int lastRH11;
+//int lastRH8;
 
-long long total_countRH14;
-long long total_countRH11;
-long long total_countRH8;
+//long long total_countRH14;
+//long long total_countRH11;
+//long long total_countRH8;
 
 int control_mode;
 int globalIndex;
@@ -171,9 +208,10 @@ double kd1, kd2, kd3;
 double ki1, ki2, ki3;
 //double kp1curr, kp2curr, kp3curr;
 //double kd1curr, kd2curr, kd3curr;
+double K_lqr[24];
 
-double error1, error2, error3;
-double errord1, errord2, errord3;
+//double error1, error2, error3;
+//double errord1, errord2, errord3;
 double errorInt1, errorInt2, errorInt3;
 
 double *position1, *position2, *position3;
