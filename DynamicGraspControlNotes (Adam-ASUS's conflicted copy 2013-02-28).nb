@@ -1,0 +1,3 @@
+(* Dynamic Grasp Feedback Control Notes*)
+I tho''[t] == ft2 lo + ft1 lo + fn2 wo - fn1 wo;
+(ft1 + ft2) Cos[tho[t]] - (fn1 + fn2) Sin[tho[t]] == mo xo''[t];

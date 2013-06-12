@@ -152,6 +152,10 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   //Now, we know that the udp packet header is 8 bytes, and the length includes both.
   //Therefore, number of bytes ifs length - 8. Note that we also need to make sure we have the right byte order!
   size_payload = (int)(ntohs(udp->udp_len)) - SIZE_UDP;
+  if(size_payload == 4){
+	  //camera is doing setup
+	  return;
+  }
   if((size_payload - 24)%20 != 0) {
     printf("Payload is weird size: %d\n", size_payload);
     return;
@@ -161,6 +165,13 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   int nObjects = (size_payload - 24)/20;
   int i;
   newCameraData = 0;//Don't update camera marker info while doing this
+ // if(nObjects > DES_MARKERS) {
+	  //printf("%d markers\n",nObjects); //Commented because this slows shit down
+//	  home1 = xManip_global;
+//	  home2 = yManip_global;
+//	  home3 = thManip_global;
+//	  control_mode = PID_MANIP_POS;
+//  }
   if(nObjects >= 3 && nObjects <= DES_MARKERS) {
     for(i = 0; i < nObjects; i++) {
       currentObject = payload + 24 + 20*i;

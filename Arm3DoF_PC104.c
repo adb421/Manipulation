@@ -61,9 +61,9 @@ int main(int argc, char *argv[]) {
   pthread_setschedparam(control_loop_thread_id, SCHED_FIFO, &control_loop_sched_params);
   pthread_setschedparam(vision_loop_thread_id, SCHED_FIFO, &vision_loop_sched_params);
 
-  while(1) {
+  while(!end_program) {
     //sched_yield(); This uses more kernel time, use sleep instead. Sleep for second at a time. Could change this.
-    sleep(3);
+    sleep(1);
   }
   return EXIT_SUCCESS;
 }
@@ -114,8 +114,10 @@ void * control_loop_thread(void *arg) {
     //Block thread until interrupt occurs
     //This interrupt happens every time the timer runs out
     InterruptWait(0,NULL);
+    //Flip that pin
+    flip_pin(iobase);
  //   printf("%d\n", control_mode);
-	ClockTime(CLOCK_REALTIME, NULL, &preLoop);
+    ClockTime(CLOCK_REALTIME, NULL, &preLoop);
     //Now we do control loop!
     //Read encoders every cycle
     thRH14_prev = thRH14global;
@@ -140,6 +142,7 @@ void * control_loop_thread(void *arg) {
     xManip_global = -1.0*L1*cos(thRH14global) - L2*cos(thRH14global+thRH11global);
     yManip_global = -1.0*L1*sin(thRH14global) - L2*sin(thRH14global+thRH11global);
     thManip_global = thRH14global + thRH11global + thRH8global;
+    
     //Update velocities
     velXManip_prev = velXManip_global;
     velYManip_prev = velYManip_global;
@@ -147,6 +150,12 @@ void * control_loop_thread(void *arg) {
     velXManip_global = (xManip_global - xManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velXManip_global;
     velYManip_global = (yManip_global - yManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velYManip_global;
     velThManip_global = (thManip_global - thManip_prev)/DT*ALPHA_FILTER + (1.0 - ALPHA_FILTER)*velThManip_global;
+
+    if(control_mode != NO_CONTROL) {
+    	//Check limits
+    	if(limitsExceeded())
+    		control_mode = NO_CONTROL;
+    }
     cameraFrameCount++;
     if(newCameraData) {
 	//Calculate object positions
@@ -165,10 +174,10 @@ void * control_loop_thread(void *arg) {
 	yObjectGlobal = 0.5*(yGlobal[3] + yGlobal[4]);
 	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
 	//Is this right?
-//	if(thObjectGlobal - thObject_prev >= 3)
-//	    thObjectGlobal -= 2.0*M_PI;
-//	else if(thObject_prev - thObjectGlobal >= 3)
-//	    thObjectGlobal += 2.0*M_PI;
+	if(thObjectGlobal - thObject_prev >= 3 && cameraFrameCount < 12)
+	    thObjectGlobal -= 2.0*M_PI;
+	else if(thObject_prev - thObjectGlobal >= 3 && cameraFrameCount < 12)
+	    thObjectGlobal += 2.0*M_PI;
 
 	normDistObject = sqrt(pow(xObjectGlobal - xManip_global,2) + pow(yObjectGlobal - yManip_global,2));
 	if(normDistObject > 3.0*lc && control_mode == ONE_POINT_ROLL_BALANCE) {

@@ -1,0 +1,23 @@
+(* Dynamic Grasp Feedback Control Notes*)
+ (* Define contact points w.r.t. object coordinates *)
+xc1[t] = xo[t] - wo Cos[\[Theta]o[t]] + lo Sin[\[Theta]o[t]];
+xc2[t] = xo[t] + wo Cos[\[Theta]o[t]] + lo Sin[\[Theta]o[t]];
+yc1[t] = yo[t] - lo Cos[\[Theta]o[t]] - wo Sin[\[Theta]o[t]];
+yc2[t] = yo[t] - lo Cos[\[Theta]o[t]] + wo Sin[\[Theta]o[t]];
+
+
+(* Define contact points w.r.t Manipulator coordinates *)
+r1[t] = Sqrt[(xc1[t] - xm[t])^2 + (yc1[t] - ym[t])^2];
+r2[t] = Sqrt[(xc2[t] - xm[t])^2 + (yc2[t] - ym[t])^2];
+\[Beta]1[t] = ArcCos[(4 lo^2 + r1[t]^2 - r2[t]^2)/(4 lo r1[t])];
+\[Beta]2[t] = ArcCos[(4 lo^2 + r2[t]^2 - r1[t]^2)/(4 lo r2[t])];
+xmTest1[t] = xc1[t] + r1[t] Cos[\[Beta]1[t] - \[Theta]m[t]];
+xmTest2[t] = xc2[t] - r2[t] Cos[\[Beta]2[t] - \[Theta]m[t]];
+(*xc2[t] = xc1[t] + 2 lo Cos[\[Theta]o[t]];*)
+In[7]:= xmTest1[t] //FullSimplify
+xmTest2[t] // FullSimplify
+xmTest1[t] - xmTest2[t] //FullSimplify
+Out[7]= lo+(1/(4 lo))(xc1[t]^2-xc2[t]^2+xc1[t] (4 lo-2 xm[t])+2 xc2[t] xm[t]+(yc1[t]-yc2[t]) (yc1[t]+yc2[t]-2 ym[t]))
+Out[8]= -lo+xc2[t]+(1/(4 lo))(xc1[t]^2-xc2[t]^2-2 xc1[t] xm[t]+2 xc2[t] xm[t]+(yc1[t]-yc2[t]) (yc1[t]+yc2[t]-2 ym[t]))
+Out[9]= 2 lo+xc1[t]-xc2[t]
+In[94]:= Quit

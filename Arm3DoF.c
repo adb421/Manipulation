@@ -8,17 +8,6 @@
 #include "Arm3DoF.h"
 
 void initialize_variables() {
-    //currRH14 = 0;
-    //currRH11 = 0;
-    //currRH8  = 0;
-    //lastRH14 = 0;
-    //lastRH11 = 0;
-    //lastRH8  = 0;
-    //total_countRH14 = 0;
-    //total_countRH11 = 0;
-    //total_countRH8  = 0;
-//    error1 = 0; error2 = 0; error3 = 0;
-//    errord1 = 0; errord2 = 0; errord3 = 0;
     errorInt1 = 0; errorInt2 = 0; errorInt3 = 0;
     home1 = 0; home2 = 0; home3 = 0;
     running = 0;
@@ -50,6 +39,7 @@ void initialize_variables() {
     velXObjectGlobal = 0.0;
     velYObjectGlobal = 0.0;
     velThObjectGlobal = 0.0;
+    end_program = 0;
 }
 
 void initialize_junus(uintptr_t iobase) {
@@ -61,6 +51,20 @@ void initialize_junus(uintptr_t iobase) {
     //Need to not change this when we write to DIO
     DIO_word = DIO_word | 0x0880;
     out16(iobase + DIO_ADDR, DIO_word);
+}
+
+void flip_pin(uintptr_t iobase) {
+	static short pin = 0;
+	if(pin) {
+		//Pin was high, set it low
+		DIO_word = DIO_word & 0xFFBF;
+		pin = 0;
+	} else {
+		//Pin was low, set it high
+		DIO_word = DIO_word | 0x0840;
+		pin = 1;
+	}
+	out16(iobase + DIO_ADDR, DIO_word);
 }
 
 double current_position_RH8(uintptr_t iobase, int reset){
@@ -87,7 +91,6 @@ double current_position_RH8(uintptr_t iobase, int reset){
 //		total_count = 0;
     }
     //total_count = read_encoder_1(iobase);
-//	return (((double)(total_count))/180000.0)*M_PI;
     return (((double)(total_count))/51200.0)*M_PI;
 }
 
@@ -190,15 +193,11 @@ void set_control_RH14(uintptr_t iobase, double desCurrent) {
 	uint16_t DACVal;
     if(desCurrent >= (MAX_CURRENT_RH14 - MAX_CURRENT_RH14/32767.5)) {
     	DACVal = 65535;
-    } else if((-1.0*desCurrent) >= (MAX_CURRENT_RH14 - MAX_CURRENT_RH14/32767.5)) {
+    } else if((-1.0*desCurrent) >= (MAX_CURRENT_RH14*1.0 - MAX_CURRENT_RH14/32767.5)) {
     	DACVal = 0;
     } else {
-    	DACVal = (uint16_t)((desCurrent/MAX_CURRENT_RH14 + 1.0)*32767.5);
+    	DACVal = (uint16_t)((desCurrent/(MAX_CURRENT_RH14*1.0) + 1.0)*32767.5);
     }
-    //Debugging nonsensical stuff
-//    if(control_mode == FF_PID_TRAJ_MANIP) {
-//    	printf("curr: %f, dacval: %u\n",desCurrent,DACVal);
-//    }
     //Write to analog out 0 (1 on the breakout):
     out16(iobase + DAC_ADDR, 0x0000);
     //Load preregister for DAC0
@@ -232,12 +231,6 @@ void simpleReset() {
     control_mode = NO_CONTROL;
     running = 0;
     //Reset errors
-    //error1 = 0;
-    //error2 = 0;
-    //error3 = 0;
-    //errord1 = 0;
-    //errord2 = 0;
-    //errord3 = 0;
     errorInt1 = 0;
     errorInt2 = 0;
     errorInt3 = 0;
@@ -277,26 +270,19 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
     double errorXo, errorXoDot;
     double errorYo, errorYoDot;
     double errorTho, errorThoDot;
+    double error_inner_d_RH8, error_inner_RH8;
+    double error_inner_d_RH11, error_inner_RH11;
+    double error_inner_d_RH14, error_inner_RH14;
     
-//    static double th1Prev = 0.0;
-//    static double th2Prev = 0.0;
-//    static double th3Prev = 0.0;
+    static short reset_inner_loop = 1;
 
-//    static double th1DotCmd_prev = 0.0;
-//    static double th1Cmd_prev = 0.0;
-//    static double th2DotCmd_prev = 0.0;
-//    static double th2Cmd_prev = 0.0;
-//    static double th3DotCmd_prev = 0.0;
-//    static double th3Cmd_prev = 0.0;
-//    double th1Cmd, th1DotCmd, th2Cmd, th2DotCmd, th3Cmd, th3DotCmd;
-//    if(globalIndex == 0) {
-//    	th1Cmd_prev = traj1[globalIndex];
-//    	th2Cmd_prev = traj2[globalIndex];
-//    	th3Cmd_prev = traj3[globalIndex];
-//    	th1DotCmd_prev = (traj1[globalIndex+1] - traj1[globalIndex])/DT;
-//    	th2DotCmd_prev = (traj2[globalIndex+1] - traj2[globalIndex])/DT;
-//    	th3DotCmd_prev = (traj3[globalIndex+1] - traj3[globalIndex])/DT;
-//    }
+    static double virtualRH8 = 0.0;
+    static double virtualRH11 = 0.0;
+    static double virtualRH14 = 0.0;
+    static double virtualVelRH8 = 0.0;
+    static double virtualVelRH11 = 0.0;
+    static double virtualVelRH14 = 0.0;
+
     //Switch based on control_mode
     switch(control_mode) {
     case NO_CONTROL:
@@ -304,6 +290,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 //	th1Prev = thRH14global;
 //	th2Prev = thRH11global;
 //	th3Prev = thRH8global;
+    reset_inner_loop = 1;
 	return;
 	break;
     case GO_HOME_JOINTS:
@@ -322,18 +309,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	th1dd = kp1*error1 + kd1*errord1 + ki1*errorInt1;
 	th2dd = kp2*error2 + kd2*errord2 + ki2*errorInt2;
 	th3dd = kp3*error3 + kd3*errord3 + ki3*errorInt3;
-//	//Only for this test
-//	robotTorques(&torqueDes1, &torqueDes2, &torqueDes3,		 \
-//			 th1dd, th2dd, th3dd,				 \
-//			 velRH14global, velRH11global, velRH8global,	 \
-//			 thRH14global, thRH11global, thRH8global);
-//	*reqCurrentRH14 = torqueDes1/KM1;
-//	*reqCurrentRH11 = torqueDes2/KM2;
-//	*reqCurrentRH8 = torqueDes3/KM3;
-//	th1Prev = thRH14global;
-//	th2Prev = thRH11global;
-//	th3Prev = thRH8global;
-//	return;
+	reset_inner_loop = 1;
 	break;
     case TRAJ_IS_CURRENT:
 //	th1Prev = thRH14global;
@@ -344,6 +320,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	    *reqCurrentRH11 = traj2[globalIndex];
 	    *reqCurrentRH8  = traj3[globalIndex];
 	}
+	reset_inner_loop = 1;
 	return;
 	break;
     case FEEDFORWARD_JOINTS:
@@ -380,9 +357,6 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	    th1dd = calculateTrajAccel1() + kp1*error1+kd1*errord1+ki1*errorInt1;
 	    th2dd = calculateTrajAccel2() + kp2*error2+kd2*errord2+ki2*errorInt2;
 	    th3dd = calculateTrajAccel3() + kp3*error3+kd3*errord3+ki3*errorInt3;
-//	    desAccel1[globalIndex] = th1dd;
-//	    desAccel2[globalIndex] = th2dd;
-//	    desAccel3[globalIndex] = th3dd;
 	} else return;
 	break;
     case DYNAMIC_GRASP_TRAJ:
@@ -406,6 +380,12 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	    thodd = calculateTrajAccel3() + errorTh*kp3 + errorThd*kd3;
 	    dynamicGraspControl(xodd, yodd, thodd, &xmdd, &ymdd, &thmdd);
 	    calculateJointAccelFromManipAccel(xmdd,ymdd,thmdd, &th1dd, &th2dd, &th3dd);
+	    desXAccel[globalIndex] = xmdd;
+	    desYAccel[globalIndex] = ymdd;
+	    desThAccel[globalIndex] = thmdd;
+	    desAccel1[globalIndex] = th1dd;
+	    desAccel2[globalIndex] = th2dd;
+	    desAccel3[globalIndex] = th3dd;
 	}
 	break;
     case DYNAMIC_GRASP_POS:
@@ -448,9 +428,12 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	    ymdd = calculateTrajAccel2() + kp2*error2 + kd2*errord2 + ki2*errorInt2;
 	    thmdd = calculateTrajAccel3() + kp3*error3 + kd3*errord3 + ki3*errorInt3;
 	    calculateJointAccelFromManipAccel(xmdd, ymdd, thmdd, &th1dd, &th2dd, &th3dd);
-//	    desAccel1[globalIndex] = th1dd;
-//	    desAccel2[globalIndex] = th2dd;
-//	    desAccel3[globalIndex] = th3dd;
+	    desXAccel[globalIndex] = xmdd;
+	    desYAccel[globalIndex] = ymdd;
+	    desThAccel[globalIndex] = thmdd;
+	    desAccel1[globalIndex] = th1dd;
+	    desAccel2[globalIndex] = th2dd;
+	    desAccel3[globalIndex] = th3dd;
 	} else return;
 	break;
     case PID_MANIP_POS:
@@ -468,10 +451,11 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	errorInt1 += error1;
 	errorInt2 += error2;
 	errorInt3 += error3;
-	xmdd = 265.0*error1 + 100.0*errord1 + 0.0001*errorInt1;
-	ymdd = 265.0*error2 + 100.0*errord2 + 0.0001*errorInt2;
-	thmdd = 1000.0*error3 + 125.0*errord3 + 0.0001*errorInt3;
+	xmdd = 285.0*error1 + 90.0*errord1 + 0.0003*errorInt1;
+	ymdd = 285.0*error2 + 90.0*errord2 + 0.0003*errorInt2;
+	thmdd = 750.0*error3 + 100.0*errord3 + 0.0003*errorInt3;
 	calculateJointAccelFromManipAccel(xmdd, ymdd, thmdd, &th1dd, &th2dd, &th3dd);
+	reset_inner_loop = 1;
 	break;
     case ONE_POINT_ROLL_BALANCE:
 	//LQR errors
@@ -494,23 +478,56 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 		ymdd = -0.75*g;
 	}
 	calculateJointAccelFromManipAccel(xmdd,ymdd,thmdd,&th1dd,&th2dd,&th3dd);
+	if(globalIndex >= 0 && globalIndex < num_pts && running) {
+	    desXAccel[globalIndex] = xmdd;
+	    desYAccel[globalIndex] = ymdd;
+	    desThAccel[globalIndex] = thmdd;
+	    desAccel1[globalIndex] = th1dd;
+	    desAccel2[globalIndex] = th2dd;
+	    desAccel3[globalIndex] = th3dd;
+	}
 	break;
     default:
 	return;
 	break;
     }
+    if(!reset_inner_loop) {
+    	//Update virtual trajectory and calculate errors
+    	virtualRH14 += virtualVelRH14*DT + th1dd/2.0*DT*DT;
+    	virtualVelRH14 += th1dd*DT;
+    	error_inner_d_RH14 = virtualVelRH14 - velRH14global;
+    	error_inner_RH14 = virtualRH14 - thRH14global;
+
+    	virtualRH11 += virtualVelRH11*DT + th2dd/2.0*DT*DT;
+    	virtualVelRH11 += th2dd*DT;
+    	error_inner_d_RH11 = virtualVelRH11 - velRH11global;
+    	error_inner_RH11 = virtualRH11 - thRH11global;
+
+    	virtualRH8 += virtualVelRH8*DT + th3dd/2.0*DT*DT;
+    	virtualVelRH8 += th3dd*DT;
+    	error_inner_d_RH8 = virtualVelRH8 - velRH8global;
+    	error_inner_RH8 = virtualRH8 - thRH8global;
+    } else {
+    	virtualRH8 = thRH8global;
+    	virtualRH11 = thRH11global;
+    	virtualRH14 = thRH14global;
+    	virtualVelRH8 = velRH8global;
+    	virtualVelRH11 = velRH11global;
+    	virtualVelRH14 = velRH14global;
+    	reset_inner_loop = 0;
+    	error_inner_d_RH14 = 0.0; error_inner_RH14 = 0.0;
+    	error_inner_d_RH11 = 0.0; error_inner_RH11 = 0.0;
+    	error_inner_d_RH8 = 0.0; error_inner_RH8 = 0.0;
+    }
+
     robotTorques(&torqueDes1, &torqueDes2, &torqueDes3,		 \
 		 th1dd, th2dd, th3dd,				 \
 		 velRH14global, velRH11global, velRH8global,	 \
 		 thRH14global, thRH11global, thRH8global);
 
-    *reqCurrentRH14 = torqueDes1/KM1;
-    *reqCurrentRH11 = torqueDes2/KM2;
-    *reqCurrentRH8 = torqueDes3/KM3;
-
-//    th1Prev = thRH14global;
-//    th2Prev = thRH11global;
-//    th3Prev = thRH8global;
+    *reqCurrentRH14 = torqueDes1/KM1 + INNER_K1_14 * error_inner_RH14 + INNER_K2_14*error_inner_d_RH14;
+    *reqCurrentRH11 = torqueDes2/KM2 + INNER_K1_11 * error_inner_RH11 + INNER_K2_11*error_inner_d_RH11;
+    *reqCurrentRH8  = torqueDes3/KM3 + INNER_K1_8 * error_inner_RH8 + INNER_K2_8*error_inner_d_RH8;
 }
 
 /* //Functions to calculate the necessary current/calculate control */
@@ -1177,47 +1194,44 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 /* } */
 
 double calculateTrajVel1(void) {
-    if(globalIndex < 1) return 0.0;
+    if(globalIndex < 1 || globalIndex >= num_pts-1) return 0.0;
     else {
-	return (traj1[globalIndex] - traj1[globalIndex-1])/DT;
+	return (traj1[globalIndex+1] - traj1[globalIndex-1])/(2.0*DT);
     }
 }
 
 double calculateTrajVel2(void) {
-    if(globalIndex < 1) return 0.0;
+    if(globalIndex < 1 || globalIndex >= num_pts-1) return 0.0;
     else {
-	return (traj2[globalIndex] - traj2[globalIndex-1])/DT;
+	return (traj2[globalIndex+1] - traj2[globalIndex-1])/(2.0*DT);
     }
 }
 
 double calculateTrajVel3(void) {
-    if(globalIndex < 1) return 0.0;
+    if(globalIndex < 1 || globalIndex >= num_pts-1) return 0.0;
     else {
-	return (traj3[globalIndex] - traj3[globalIndex-1])/DT;
+	return (traj3[globalIndex+1] - traj3[globalIndex-1])/(2.0*DT);
     }
 }
 
 double calculateTrajAccel1(void) {
-    if(globalIndex < 1) return 0.0;
-    else if(globalIndex >= num_pts -1) return 0.0;
+    if(globalIndex < 2 || globalIndex >= num_pts - 2) return 0.0;
     else {
-	return(((traj1[globalIndex + 1] - traj1[globalIndex])/DT - (traj1[globalIndex] - traj1[globalIndex -1])/DT) /DT);
+	return ((traj1[globalIndex + 2] + traj1[globalIndex - 2] - 2.0*traj1[globalIndex])/(4.0*DT*DT) );
     }
 }
 
 double calculateTrajAccel2(void) {
-    if(globalIndex < 1) return 0.0;
-    else if(globalIndex >= num_pts -1) return 0.0;
+    if(globalIndex < 2 || globalIndex >= num_pts - 2) return 0.0;
     else {
-	return(((traj2[globalIndex + 1] - traj2[globalIndex])/DT - (traj2[globalIndex] - traj2[globalIndex -1])/DT) /DT);
+	return ((traj2[globalIndex + 2] + traj2[globalIndex - 2] - 2.0*traj2[globalIndex])/(4.0*DT*DT) );
     }
 }
 
 double calculateTrajAccel3(void) {
-    if(globalIndex < 1) return 0.0;
-    else if(globalIndex >= num_pts -1) return 0.0;
+    if(globalIndex < 2 || globalIndex >= num_pts - 2) return 0.0;
     else {
-	return(((traj3[globalIndex + 1] - traj3[globalIndex])/DT - (traj3[globalIndex] - traj3[globalIndex -1])/DT) /DT);
+	return ((traj3[globalIndex + 2] + traj3[globalIndex - 2] - 2.0*traj3[globalIndex])/(4.0*DT*DT) );
     }
 }
 
@@ -1375,6 +1389,7 @@ void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
 	torqueFric1 += staticFric;
     else if(th1dot < 0.0)
 	torqueFric1 -= staticFric;
+
     *torqueDes1 += torqueFric1;
 
     //th2
@@ -1444,10 +1459,25 @@ void calculateJointAccelFromManipAccel(double xmdd, double ymdd, double thmdd, \
 				 (L1*c1+L2*c12)*xmdd +	\
 				 (L1*s1+L2*s12)*ymdd);
 	*th3dd = 1.0/(sin(th2)*L2)*(L1*th1d*th1d + L2*c2*(th1d+th2d)*	\
-				    (th1d+th2d) - c1*xmdd - s1*ymdd) +	\
-	    thmdd;
+				    (th1d+th2d) - c1*xmdd - s1*ymdd) +	thmdd;
 	th1ddOld = *th1dd;
 	th2ddOld = *th2dd;
 	th3ddOld = *th3dd;
     }
+}
+
+int limitsExceeded() {
+    if(fabs(thRH11global) > 2.6) { //May want to add in velocities
+	printf("Joint 2 angle limit exceeded\n");
+	return 1;
+    }
+    if(fabs(thRH14global) > 2.5) { //Velocities?
+	printf("Joint 1 angle limit exceeded\n");
+	return 1;
+    }
+    if(xManip_global > 0.12) {
+	printf("X position past minimum\n");
+	return 1;
+    }
+    return 0;
 }

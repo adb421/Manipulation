@@ -22,6 +22,9 @@ void procCmd8();
 void procCmd9();
 void procCmd10();
 void procCmd11();
+void procCmd12();
+void procCmd13();
+void procCmd14();
 
 
 #endif /* PROCESS_COMMANDS_H_ */

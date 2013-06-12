@@ -20,7 +20,7 @@
 #define DYNAMIC_GRASP_TRAJ 6  //Follow a trajectory assuming dynamic grasp, trajs are object pos
 #define DYNAMIC_GRASP_POS  7  //Go to a specified object pos, assume dyn grasp
 #define FF_PID_TRAJ_MANIP  8  //Follow a trajectory, trajs are manipulator pos (x,y,th)
-#define PID_MANIP_POS      9  //Go to a specified manipulator pos
+#define PID_MANIP_POS      9  //Go to a specified manipulator pos aka home position
 #define ONE_POINT_ROLL_BALANCE 10 // Balance one point rolling, stabilize a ponit
 
 #define LOW_PRIORITY	30
@@ -28,7 +28,7 @@
 #define HIGH_PRIORITY	40
 
 //Horizontal is 0
-#define TABLE_ANGLE		 (M_PI/6) //Table angle is approx 30degrees right now
+#define TABLE_ANGLE		 (0.4) //Table angle is approx 22 degrees right now
 
 #define MAX_CURRENT_RH14 (5.4) //Amps
 #define MAX_CURRENT_RH11 (2.1) //Amps
@@ -141,8 +141,12 @@
 
 #define IRQ4	4
 
-#define ALPHA_FILTER (0.2)
-#define ALPHA_FILTER_CAM (0.35)
+//Aggressive filter time, 5Hz cutoff
+#define ALPHA_FILTER (0.03)
+#define ALPHA_FILTER_CAM (0.112)
+
+//#define ALPHA_FILTER (0.15)
+//#define ALPHA_FILTER_CAM (0.25)
 //#define ALPHA_FILTER_CAM 1.0
 double current_position_RH8(uintptr_t iobase, int reset);
 double current_position_RH11(uintptr_t iobase, int reset);
@@ -178,6 +182,10 @@ void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
 		  double th1, double th2, double th3);
 void calculateJointAccelFromManipAccel(double xmdd, double ymdd, double thmdd, \
 				       double *th1dd, double *th2dd, double *th3dd);
+int limitsExceeded();
+void flip_pin(uintptr_t iobase);
+
+
 uintptr_t iobase;
 uint16_t  DIO_word;
 
@@ -217,11 +225,12 @@ double errorInt1, errorInt2, errorInt3;
 double *position1, *position2, *position3;
 double *traj1, *traj2, *traj3;
 double *controlVals1, *controlVals2, *controlVals3;
+double *desXAccel, *desYAccel, *desThAccel;
 double *objectX, *objectY, *objectTh;
 _uint64 *loopTimes;
 
 double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2, *cameraPosTh;
-//double *desAccel1, *desAccel2, *desAccel3;
+double *desAccel1, *desAccel2, *desAccel3;
 
 double contactPoint1, contactPoint2;
 
@@ -234,4 +243,11 @@ double velThManip_global, velXManip_global, velYManip_global;
 double xObjectGlobal, yObjectGlobal, thObjectGlobal;
 double velXObjectGlobal, velYObjectGlobal, velThObjectGlobal;
 double xManipCam_global, yManipCam_global;
+
+//These will eventually be #defs
+double INNER_K1_14, INNER_K2_14;
+double INNER_K1_11, INNER_K2_11;
+double INNER_K1_8, INNER_K2_8;
+
+short end_program;
 #endif /* ARM3DOF_H_ */
