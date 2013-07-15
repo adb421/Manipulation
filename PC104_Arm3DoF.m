@@ -24,6 +24,9 @@ classdef PC104_Arm3DoF < handle
         xAccControl, yAccControl, thAccControl;
         accControl1, accControl2, accControl3;
         k1RH14; k2RH14; k1RH11; k2RH11; k1RH8; k2RH8;
+        tcam;
+        fixedCamX; fixedCamY;
+        fixedObjX; fixedObjY; fixedObjTh;
     end
     
     methods
@@ -435,6 +438,13 @@ classdef PC104_Arm3DoF < handle
                         fwrite(obj.IPout,K(i,j),'double');
                     end
                 end
+                %Go K1, K2, K1, K2, K1, K2 from RH14->11->8
+                fwrite(obj.IPout,obj.params.k1RH14,'double');
+                fwrite(obj.IPout,obj.params.k2RH14,'double');
+                fwrite(obj.IPout,obj.params.k1RH11,'double');
+                fwrite(obj.IPout,obj.params.k2RH11,'double');
+                fwrite(obj.IPout,obj.params.k1RH8,'double');
+                fwrite(obj.IPout,obj.params.k2RH8,'double');
                 text = fscanf(obj.IPin,'%s');
                 if(isempty(strfind(text,'LQRUPDATED')))
                     disp('Didnt get LQR gains')
@@ -445,11 +455,92 @@ classdef PC104_Arm3DoF < handle
                 disp('Not connected')
                 return
             end
-            
         end
+        
+        %New LQR gain send for balancing at a point (cmd = 13)
+        function newLQRGainSend(obj)
+            if(obj.connected)
+                A = obj.params.Anew;
+                B = obj.params.Bnew;
+                R = obj.params.Rnew;
+                Q = obj.params.Qnew;
+                K = lqr(A,B,Q,R);
+                cmd = 13;
+                fwrite(obj.IPout,cmd,'int32');
+                text = fscanf(obj.IPin,'%s');
+                if(isempty(strfind(text,'LQRGAINS')))
+                    disp('No LQRGAINS?')
+                    disp(text)
+                    return
+                end
+                for i = 1:3
+                    for j = 1:8
+                        fwrite(obj.IPout,K(i,j),'double');
+                    end
+                end
+                %K1, K2, K1, K2, K1, K2 from RH14->11->8
+                fwrite(obj.IPout,obj.params.k1RH14,'double');
+                fwrite(obj.IPout,obj.params.k2RH14,'double');
+                fwrite(obj.IPout,obj.params.k1RH11,'double');
+                fwrite(obj.IPout,obj.params.k2RH11,'double');
+                fwrite(obj.IPout,obj.params.k1RH8,'double');
+                fwrite(obj.IPout,obj.params.k2RH8,'double');
+                text = fscanf(obj.IPin,'%s');
+                if(isempty(strfind(text,'LQRUPDATED')))
+                    disp('Didnt get LQR gains')
+                    disp(text)
+                    return
+                end
+            else
+                disp('Not connected')
+                return
+            end
+        end
+        
         
         %Plotting function
         function plotTrajData(obj)
+            %Fix camera data
+            obj.tcam = zeros(size(obj.t));
+            obj.fixedCamX = zeros(size(obj.camPosX));
+            obj.fixedCamY = zeros(size(obj.camPosY));
+            obj.fixedObjX = zeros(size(obj.objPosX));
+            obj.fixedObjY = zeros(size(obj.objPosY));
+            obj.fixedObjTh = zeros(size(obj.objPosTh));
+            obj.tcam(1) = obj.t(1);
+            obj.fixedCamX(1) = obj.camPosX(1);
+            obj.fixedCamY(1) = obj.camPosY(1);
+            obj.fixedObjX(1) = obj.objPosX(1);
+            obj.fixedObjY(1) = obj.objPosY(1);
+            obj.fixedObjTh(1) = obj.objPosTh(1);
+            j = 2;
+            for i = 2:length(obj.camPosX)
+                if(obj.camPosX(i) ~= obj.camPosX(i-1) || ...
+                   obj.camPosY(i) ~= obj.camPosY(i-1) || ...
+                   obj.objPosX(i) ~= obj.objPosX(i-1) || ...
+                   obj.objPosY(i) ~= obj.objPosY(i-1) || ...
+                   obj.objPosTh(i) ~= obj.objPosTh(i-1))
+                    obj.fixedCamX(j) = obj.camPosX(i);
+                    obj.fixedCamY(j) = obj.camPosY(i);
+                    obj.tcam(j) = obj.t(i);
+                    obj.fixedObjX(j) = obj.objPosX(i);
+                    obj.fixedObjY(j) = obj.objPosY(i);
+                    obj.fixedObjTh(j) = obj.objPosTh(i);
+                    j = j+1;
+                end
+            end
+            obj.fixedCamX = obj.fixedCamX(1:j-1);
+            obj.fixedCamY = obj.fixedCamY(1:j-1);
+            obj.tcam = obj.tcam(1:j-1);
+            obj.fixedObjX = obj.fixedObjX(1:j-1);
+            obj.fixedObjY = obj.fixedObjY(1:j-1);
+            obj.fixedObjTh = obj.fixedObjTh(1:j-1);
+            objXVel = derivative(obj.fixedObjX)./derivative(obj.tcam);
+            objYVel = derivative(obj.fixedObjY)./derivative(obj.tcam);
+            objThVel = derivative(obj.fixedObjTh)./derivative(obj.tcam);
+            objXAccel = derivative(objXVel)./derivative(obj.tcam);
+            objYAccel = derivative(objYVel)./derivative(obj.tcam);
+            objThAccel = derivative(objThVel)./derivative(obj.tcam);
             % Plot joint angles first
             figure(1);
             subplot(3,1,1);
@@ -482,20 +573,20 @@ classdef PC104_Arm3DoF < handle
             %Plot x/y/z pos of manipulator
             figure(2);
             subplot(3,1,1);%For x
-            plot(obj.t,obj.camPosX,'r',obj.t,xEnc,'b',obj.t,obj.traj1,'g');
+            plot(obj.tcam,obj.fixedCamX,'r',obj.t,xEnc,'b',obj.t,obj.traj1,'g');
             title('X position of manipulator, encoders versus camera');
             xlabel('Time (s)'); ylabel('Meters from base');
             legend('Camera','Encoders','Desired');
             subplot(3,1,2);%For y
-            plot(obj.t,obj.camPosY,'r',obj.t,yEnc,'b',obj.t,obj.traj2,'g');
+            plot(obj.tcam,obj.fixedCamY,'r',obj.t,yEnc,'b',obj.t,obj.traj2,'g');
             title('Y position of manipulator, encoders versus camera');
             xlabel('Time (s)'); ylabel('Meters from base');
             legend('Camera','Encoders','Desired');
             subplot(3,1,3);%For orientation
-            plot(obj.t,obj.camPosTh,'r',obj.t,thEnc,'b',obj.t,obj.traj3,'g');
+            plot(obj.t,thEnc,'b',obj.t,obj.traj3,'g');
             title('Angular position of manipulator, encoders versus camera');
             xlabel('Time (s)'); ylabel('Radians');
-            legend('Camera','Encoders','Desired');
+            legend('Encoders','Desired');
             
             %Control values and looptimes
             figure(3);
@@ -515,8 +606,8 @@ classdef PC104_Arm3DoF < handle
             subplot(3,1,1);
             %x Position
 %             plot(obj.t,obj.traj1,'r',obj.t,obj.objPosX,'--b');
-            plot(obj.t,-0.25*ones(size(obj.t)),'r', ...
-                obj.t,obj.objPosX,'--b');
+            plot(obj.t,-0.2*ones(size(obj.t)),'r', ...
+                obj.tcam,obj.fixedObjX,'--b');
             title('X Position of object CoM');
             xlabel('Time (s)'); ylabel('Meters');
             legend('Desired','Camera');
@@ -524,7 +615,7 @@ classdef PC104_Arm3DoF < handle
             subplot(3,1,2);
 %             plot(obj.t,obj.traj2,'r',obj.t,obj.objPosY,'--b');
             plot(obj.t,-0.1*ones(size(obj.t)),'r', ...
-                obj.t,obj.objPosY,'--b');
+                obj.tcam,obj.fixedObjY,'--b');
             title('Y Position of object CoM');
             xlabel('Time (s)'); ylabel('Meters');
             legend('Desired','Camera');
@@ -532,7 +623,7 @@ classdef PC104_Arm3DoF < handle
             subplot(3,1,3);
 %             plot(obj.t,obj.traj3,'r',obj.t,obj.objPosTh,'--b');
             plot(obj.t,1.0218*ones(size(obj.t)),'r', ...
-                obj.t,obj.objPosTh,'--b');
+                obj.tcam,obj.fixedObjTh,'--b');
             title('Orientation of object');
             xlabel('Time (s)'); ylabel('Radians');
             legend('Desired','Camera');
@@ -543,8 +634,8 @@ classdef PC104_Arm3DoF < handle
             %x Position
 %             plot(obj.t,derivative(obj.traj1)/obj.dt,'r',obj.t, ...
 %                  derivative(obj.objPosX)/obj.dt,'--b');
-            plot(obj.t,zeros(size(obj.t)),'r',obj.t, ...
-                 derivative(obj.objPosX)/obj.dt,'--b');
+            plot(obj.t,zeros(size(obj.t)),'r', ...
+                obj.tcam, objXVel,'--b');
             title('X Velocity of object CoM');
             xlabel('Time (s)'); ylabel('Meters/second');
             legend('Desired','Camera');
@@ -552,8 +643,8 @@ classdef PC104_Arm3DoF < handle
             subplot(3,1,2);
 %             plot(obj.t,derivative(obj.traj2)/obj.dt,'r',obj.t, ...
 %                  derivative(obj.objPosY)/obj.dt,'--b');
-            plot(obj.t,zeros(size(obj.t)),'r',obj.t, ...
-                 derivative(obj.objPosY)/obj.dt,'--b');
+            plot(obj.t,zeros(size(obj.t)),'r', ...
+                obj.tcam, objYVel,'--b');
             title('Y Velocity of object CoM');
             xlabel('Time (s)'); ylabel('Meters/second');
             legend('Desired','Camera');
@@ -561,8 +652,8 @@ classdef PC104_Arm3DoF < handle
             subplot(3,1,3);
 %             plot(obj.t,derivative(obj.traj3)/obj.dt,'r',obj.t, ...
 %                  derivative(obj.objPosTh)/obj.dt,'--b');
-            plot(obj.t,zeros(size(obj.t)),'r',obj.t, ...
-                 derivative(obj.objPosTh)/obj.dt,'--b');
+            plot(obj.t,zeros(size(obj.t)),'r', ...
+                obj.tcam, objThVel,'--b');
             title('Angular velocity of object');
             xlabel('Time (s)'); ylabel('Radians/second');
             legend('Desired','Camera');
@@ -573,8 +664,8 @@ classdef PC104_Arm3DoF < handle
             %x Position
 %             plot(obj.t,derivative(derivative(obj.traj1)/obj.dt)/obj.dt,'r',obj.t, ...
 %                  derivative(derivative(obj.objPosX)/obj.dt)/obj.dt,'--b');
-            plot(obj.t,zeros(size(obj.t)),'r',obj.t, ...
-                 derivative(derivative(obj.objPosX)/obj.dt)/obj.dt,'--b');
+            plot(obj.t,zeros(size(obj.t)),'r', ...
+                obj.tcam, objXAccel,'--b');
             title('X Acceleration of object CoM');
             xlabel('Time (s)'); ylabel('Meters/second^2');
             legend('Desired','Camera');
@@ -582,8 +673,8 @@ classdef PC104_Arm3DoF < handle
             subplot(3,1,2);
 %             plot(obj.t,derivative(derivative(obj.traj2)/obj.dt)/obj.dt,'r',obj.t, ...
 %                  derivative(derivative(obj.objPosY)/obj.dt)/obj.dt,'--b');
-            plot(obj.t,zeros(size(obj.t)),'r',obj.t, ...
-                 derivative(derivative(obj.objPosY)/obj.dt)/obj.dt,'--b');
+            plot(obj.t,zeros(size(obj.t)),'r', ...
+                obj.tcam, objYAccel,'--b');
             title('Y Acceleration of object CoM');
             xlabel('Time (s)'); ylabel('Meters/second^2');
             legend('Desired','Camera');
@@ -591,16 +682,16 @@ classdef PC104_Arm3DoF < handle
             subplot(3,1,3);
 %             plot(obj.t,derivative(derivative(obj.traj3)/obj.dt)/obj.dt,'r',obj.t, ...
 %                  derivative(derivative(obj.objPosTh)/obj.dt)/obj.dt,'--b');
-            plot(obj.t,zeros(size(obj.t)),'r',obj.t, ...
-                 derivative(derivative(obj.objPosTh)/obj.dt)/obj.dt,'--b');
+            plot(obj.t,zeros(size(obj.t)),'r', ...
+                obj.tcam, objThAccel,'--b');
             title('Angular accleration of object');
             xlabel('Time (s)'); ylabel('Radians/second^2');
             legend('Desired','Camera');
             
             %Object in world x-y
             figure(7);
-            plot(obj.traj1,obj.traj2,'r',obj.objPosX,obj.objPosY,'--b', ...
-                obj.camPosX,obj.camPosY,'--g',xEnc,yEnc,'g');
+            plot(obj.traj1,obj.traj2,'r',obj.fixedObjX,obj.fixedObjY,'--b', ...
+                obj.fixedCamX,obj.fixedCamY,'--g',xEnc,yEnc,'g');
             title('Position in world frame');
             xlabel('x (m)'); ylabel('y (m)');
             legend('Desired','Camera Object','Cam manip', 'Enc manip');

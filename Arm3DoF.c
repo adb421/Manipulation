@@ -266,6 +266,8 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
     double errorX, errorY, errorTh;
     double errorXd, errorYd, errorThd;
 
+    double errorXm, errorXmDot;
+    double errorYm, errorYmDot;
     double errorThm, errorThmDot;
     double errorXo, errorXoDot;
     double errorYo, errorYoDot;
@@ -453,7 +455,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	errorInt3 += error3;
 	xmdd = 285.0*error1 + 90.0*errord1 + 0.0003*errorInt1;
 	ymdd = 285.0*error2 + 90.0*errord2 + 0.0003*errorInt2;
-	thmdd = 750.0*error3 + 100.0*errord3 + 0.0003*errorInt3;
+	thmdd = 900.0*error3 + 100.0*errord3 + 0.0004*errorInt3;
 	calculateJointAccelFromManipAccel(xmdd, ymdd, thmdd, &th1dd, &th2dd, &th3dd);
 	reset_inner_loop = 1;
 	break;
@@ -465,7 +467,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	errorXoDot = -velXObjectGlobal;
 	errorYo = Y_OBJ_ROLL_GOAL - yObjectGlobal;
 	errorYoDot = -velYObjectGlobal;
-	errorTho = M_PI/2.0 - OBJECT_ANGLE - thObjectGlobal;
+	errorTho = TH_OBJ_ROLL_GOAL - thObjectGlobal;
 	errorThoDot = -velThObjectGlobal;
 	xmdd = K_lqr[0]*errorThm + K_lqr[1]*errorThmDot + K_lqr[2]*errorXo + K_lqr[3]*errorXoDot + \
 			K_lqr[4]*errorYo + K_lqr[5]*errorYoDot + K_lqr[6]*errorTho + K_lqr[7]*errorThoDot;
@@ -473,11 +475,41 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 			K_lqr[12]*errorYo + K_lqr[13]*errorYoDot + K_lqr[14]*errorTho + K_lqr[15]*errorThoDot;
 	thmdd = K_lqr[16]*errorThm + K_lqr[17]*errorThmDot + K_lqr[18]*errorXo + K_lqr[19]*errorXoDot + \
 			K_lqr[20]*errorYo + K_lqr[21]*errorYoDot + K_lqr[22]*errorTho + K_lqr[23]*errorThoDot;
-	if(ymdd < -0.75*g) {
-		printf("ClippingControl");
-		ymdd = -0.75*g;
+	if(ymdd < -0.8*g) {
+		//printf("ClippingControl");
+		ymdd = -0.8*g;
 	}
 	calculateJointAccelFromManipAccel(xmdd,ymdd,thmdd,&th1dd,&th2dd,&th3dd);
+	if(globalIndex >= 0 && globalIndex < num_pts && running) {
+	    desXAccel[globalIndex] = xmdd;
+	    desYAccel[globalIndex] = ymdd;
+	    desThAccel[globalIndex] = thmdd;
+	    desAccel1[globalIndex] = th1dd;
+	    desAccel2[globalIndex] = th2dd;
+	    desAccel3[globalIndex] = th3dd;
+	}
+	break;
+    case NEW_ONE_POINT_ROLL_BALANCE:
+	//LQR errors
+	errorXm = X_MANIP_ROLL_GOAL - xManip_global;
+	errorXmDot = -velXManip_global;
+	errorYm = Y_MANIP_ROLL_GOAL - yManip_global;
+	errorYmDot = -velYManip_global;
+	errorThm = -thManip_global;
+	errorThmDot = -velThManip_global;
+	errorTho = TH_OBJ_ROLL_GOAL - thObjectGlobal;
+	errorThoDot = -velThObjectGlobal;
+	xmdd = K_lqr[0]*errorXm + K_lqr[1]*errorXmDot + K_lqr[2]*errorYm + K_lqr[3]*errorYmDot + \
+			K_lqr[4]*errorThm + K_lqr[5]*errorThmDot + K_lqr[6]*errorTho + K_lqr[7]*errorThoDot;
+	ymdd = K_lqr[8]*errorXm + K_lqr[9]*errorXmDot + K_lqr[10]*errorYm + K_lqr[11]*errorYmDot + \
+			K_lqr[12]*errorThm + K_lqr[13]*errorThmDot + K_lqr[14]*errorTho + K_lqr[15]*errorThoDot;
+	thmdd = K_lqr[16]*errorXm + K_lqr[17]*errorXmDot + K_lqr[18]*errorYm + K_lqr[19]*errorYmDot + \
+			K_lqr[20]*errorThm + K_lqr[21]*errorThmDot + K_lqr[22]*errorTho + K_lqr[23]*errorThoDot;
+	if(ymdd < -0.8*g) {
+	    //printf("Clipping control\n");
+	    ymdd = -0.8*g;
+	}
+	calculateJointAccelFromManipAccel(xmdd, ymdd, thmdd, &th1dd, &th2dd, &th3dd);
 	if(globalIndex >= 0 && globalIndex < num_pts && running) {
 	    desXAccel[globalIndex] = xmdd;
 	    desYAccel[globalIndex] = ymdd;
@@ -530,669 +562,6 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
     *reqCurrentRH8  = torqueDes3/KM3 + INNER_K1_8 * error_inner_RH8 + INNER_K2_8*error_inner_d_RH8;
 }
 
-/* //Functions to calculate the necessary current/calculate control */
-/* //RH14, motor 1 */
-/* double calculateControl1() { */
-/*     //Initialize variables to 0 */
-/*     double reqCurrent = 0; */
-/*     //Required torque */
-/*     double torque = 0; */
-/*     //Term for gravity compensation */
-/*     double gravComp = 0; */
-
-/*     double xmdd, ymdd, thmdd; */
-/*     double xodd, yodd, thodd; */
-/*     double errorX, errorY, errorTh; */
-
-/*     double th1dd; */
-/*     static double th1Prev = 0.0; */
-/*     //Determine our control mode */
-/*     switch(control_mode) { */
-/*     case NO_CONTROL: */
-/* 	//Don't do anything, use 0 current */
-/* 	break; */
-/*     case GO_HOME_JOINTS: */
-/* 	//Go home */
-/* 	//Calculate current error */
-/* 	error1 = home1 - thRH14global; */
-/* 	//Update integral error */
-/* 	errorInt1 += error1*DT; */
-/* 	gravComp = -0.5*g*(L1*(m1+2.0*(m2+m3+mm2+mm3))*cos(home1) + \ */
-/* 			   L2*(m2+2.0*(m3+mm3))*cos(home1+home2)); */
-/* 	//Use PI + gravComp for home control */
-/* 	torque = KPH1*error1 + KIH1*errorInt1 + gravComp; */
-/* 	reqCurrent = torque/KM1; */
-/* 	break; */
-/*     case TRAJ_IS_CURRENT: */
-/* 	//Trajectories are actually current vals */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    reqCurrent = traj1[globalIndex]; */
-/* 	} */
-/* 	break; */
-/*     case FEEDFORWARD_JOINTS: */
-/* 	//Feedforward control */
-/* 	torque = feedForward1(); */
-/* 	reqCurrent = torque/KM1; */
-/* 	break; */
-/*     case PID_TRAJ_JOINTS: */
-/* 	//PID Traj control */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error1 = traj1[globalIndex] - thRH14global; */
-/* 	    errord1 = calculateTrajVel1() - velRH14global; */
-/* 	    errorInt1 += error1*DT; */
-/* 	    torque = kp1*error1 + kd1*errord1 + ki1*errorInt1; */
-/* 	    reqCurrent = torque/KM1; */
-/* 	} */
-/* 	break; */
-/*     case FF_PID_TRAJ_JOINTS: */
-/* 	//Feedforward control with PID */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error1 = traj1[globalIndex] - thRH14global; */
-/* 	    errord1 = calculateTrajVel1() - velRH14global; */
-/* 	    errorInt1 += error1*DT; */
-/* 	    th1dd =  kp1*error1 + kd1*errord1 + ki1*errorInt1; */
-/* 	    torque = feedForward1(th1dd); */
-/* 	    reqCurrent = torque/KM1; */
-/* 	} */
-/* 	break; */
-/*     case DYNAMIC_GRASP_TRAJ: */
-/* 	//Dyanmic grasp */
-/* 	errorX = traj1[globalIndex] - xObjectGlobal; */
-/* 	errorY = traj2[globalIndex] - yObjectGlobal; */
-/* 	errorTh = traj3[globalIndex] - thObjectGlobal; */
-/* 	//Check for minimum distance on circle */
-/* 	if(fabs(errorTh) > fabs(2*M_PI - errorTh)) { */
-/* 	    errorTh = 2.0*M_PI - errorTh; */
-/* 	} else if(fabs(errorTh) > fabs(2*M_PI + errorTh)) { */
-/* 	    errorTh = 2.0*M_PI + errorTh; */
-/* 	} */
-/* 	//Add code here to go from errors in OBJECT accel to manip accel */
-/* 	xodd = calculateTrajAccel1() + errorX*kp1; */
-/* 	yodd = calculateTrajAccel2() + errorY*kp2; */
-/* 	thodd = calculateTrajAccel3() + errorTh*kp3; */
-/* 	dynamicGraspControl(xodd, yodd, thodd, &xmdd, &ymdd, &thmdd); */
-/* 	th1dd = calculateJointAccelFromManipAccel1(xmdd,ymdd,thmdd); */
-/* 	torque = controlManipAccel1(xmdd, ymdd, thmdd); */
-/* //	reqCurrent = torque/KM1 + kp1curr*((thRH14global - th1Prev) + 0.5*DT*DT*th1dd) + kd1curr*(DT*th1dd); */
-/* 	break; */
-/*     case DYNAMIC_GRASP_POS: */
-/* 	//Hold a pose in dynamic grasp */
-/* 	errorX = objHomeX - xObjectGlobal; */
-/* 	errorY = objHomeY - yObjectGlobal; */
-/* 	errorTh = objHomeTh - thObjectGlobal; */
-/* 	if(fabs(errorTh) > fabs(2*M_PI - errorTh)) { */
-/* 	    errorTh = 2.0*M_PI - errorTh; */
-/* 	} else if(fabs(errorTh) > fabs(2*M_PI + errorTh)) { */
-/* 	    errorTh = 2.0*M_PI + errorTh; */
-/* 	} */
-/* 	xodd = errorX*kp1; */
-/* 	yodd = errorY*kp2; */
-/* 	thodd = errorTh*kp3; */
-/* 	dynamicGraspControl(xodd, yodd, thodd, &xmdd, &ymdd, &thmdd); */
-/* 	th1dd = calculateJointAccelFromManipAccel1(xmdd,ymdd,thmdd); */
-/* 	torque = controlManipAccel1(xmdd, ymdd, thmdd); */
-/* //	reqCurrent = torque/KM1 + kp1curr*((thRH14global - th1Prev) + 0.5*DT*DT*th1dd) + kd1curr*(DT*th1dd); */
-/* 	break; */
-/*     case FF_PID_TRAJ_MANIP: */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error1 = traj1[globalIndex] - xManip_global; */
-/* 	    error2 = traj2[globalIndex] - yManip_global; */
-/* 	    error3 = traj3[globalIndex] - thManip_global; */
-/* 	    if(fabs(error3) > fabs(2*M_PI - error3)) { */
-/* 		error3 = 2.0*M_PI - error3; */
-/* 	    } else if(fabs(error3) > fabs(2*M_PI + error3)) { */
-/* 		error3 = 2.0*M_PI + error3; */
-/* 	    } */
-/* 	    errord1 = calculateTrajVel1() - velXManip_global; */
-/* 	    errord2 = calculateTrajVel2() - velYManip_global; */
-/* 	    errord3 = calculateTrajVel3() - velThManip_global; */
-/* 	    errorInt1 += error1; */
-/* 	    errorInt2 += error2; */
-/* 	    errorInt3 += error3; */
-/* 	    xmdd = calculateTrajAccel1() + kp1*error1 + kd1*errord1 + ki1*errorInt1; */
-/* 	    ymdd = calculateTrajAccel2() + kp2*error2 + kd2*errord2 + ki2*errorInt2; */
-/* 	    thmdd = calculateTrajAccel3() + kp3*error3 + kd3*errord3 + ki3*errorInt3; */
-/* 	    th1dd = calculateJointAccelFromManipAccel1(xmdd,ymdd,thmdd); */
-/* 	    torque = controlManipAccel1(xmdd, ymdd, thmdd); */
-/* 	    //For determining inner loop gains */
-/* //	    desAccel1[globalIndex] = th1dd; */
-/* //	    reqCurrent = torque/KM1 + kp1curr*((thRH14global - th1Prev) + 0.5*DT*DT*th1dd) + kd1curr*(DT*th1dd); */
-/* 	} else reqCurrent = 0.0; */
-/* 	break; */
-/*     case PID_MANIP_POS: */
-/* 	error1 = home1 - xManip_global; */
-/* 	error2 = home2 - yManip_global; */
-/* 	error3 = home3 - thManip_global; */
-/* 	if(fabs(error3) > fabs(2*M_PI - error3)) { */
-/* 	    error3 = 2.0*M_PI - error3; */
-/* 	} else if(fabs(error3) > fabs(2*M_PI + error3)) { */
-/* 	    error3 = 2.0*M_PI + error3; */
-/* 	} */
-/* 	errord1 = -1.0*velXManip_global; */
-/* 	errord2 = -1.0*velYManip_global; */
-/* 	errord3 = -1.0*velThManip_global; */
-/* 	errorInt1 += error1; */
-/* 	errorInt2 += error2; */
-/* 	errorInt3 += error3; */
-/* 	xmdd = kp1*error1 + kd1*errord1 + ki1*errorInt1; */
-/* 	ymdd = kp2*error2 + kd2*errord2 + ki2*errorInt2; */
-/* 	thmdd = kp3*error3 + kd3*errord3 + ki3*errorInt3; */
-/* 	th1dd = calculateJointAccelFromManipAccel1(xmdd,ymdd,thmdd); */
-/* 	torque = controlManipAccel1(xmdd,ymdd,thmdd); */
-/* //	reqCurrent = torque/KM1 + kp1curr*((thRH14global - th1Prev) + 0.5*DT*DT*th1dd) + kd1curr*(DT*th1dd); */
-/* 	break; */
-/*     default: break; */
-/*     } */
-/*     th1Prev = thRH14global; */
-/*     //Setting the control will check bounds, and flip due to motor installation */
-/*     return reqCurrent; */
-/* } */
-
-/* //RH11, motor 2 */
-/* double calculateControl2() { */
-/*     //Initialize variables to 0 */
-/*     double reqCurrent = 0; */
-/*     //Required torque */
-/*     double torque = 0; */
-/*     //Term for gravity compensation */
-/*     double gravComp = 0; */
-
-/*     //For dynamic grasp */
-/*     double xmdd, ymdd, thmdd; */
-/*     double xodd, yodd, thodd; */
-/*     double errorX, errorY, errorTh; */
-
-/*     static double th2Prev = 0.0; */
-
-/*     double th2dd; */
-/*     //Determine our control mode */
-/*     switch(control_mode) { */
-/*     case NO_CONTROL: */
-/* 	//Don't do anything, use 0 current */
-/* 	break; */
-/*     case GO_HOME_JOINTS: */
-/* 	//Go home */
-/* 	//Calculate current error */
-/* 	error2 = home2 - thRH11global; */
-/* 	//Update integral error */
-/* 	errorInt2 += error2*DT; */
-/* 	gravComp = -0.5*g*L2*(m2+2.0*(m3+mm3))*cos(home1+home2); */
-/* 	//Use PI + gravComp for home control */
-/* 	torque = KPH2*error2 + KIH2*errorInt2 + gravComp; */
-/* 	reqCurrent = torque/KM2; */
-/* 	break; */
-/*     case TRAJ_IS_CURRENT: */
-/* 	//Trajectories are actually current vals */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    reqCurrent = traj2[globalIndex]; */
-/* 	} */
-/* 	break; */
-/*     case FEEDFORWARD_JOINTS: */
-/* 	//Feedforward control */
-/* 	torque = feedForward2(); */
-/* 	reqCurrent = torque/KM2; */
-/* 	break; */
-/*     case PID_TRAJ_JOINTS: */
-/* 	//PID Traj control */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error2 = traj2[globalIndex] - thRH11global; */
-/* 	    errord2 = calculateTrajVel2() - velRH11global; */
-/* 	    errorInt2 += error2*DT; */
-/* 	    torque = kp2*error2 + kd2*errord2 + ki2*errorInt2; */
-/* 	    reqCurrent = torque/KM2; */
-/* 	} */
-/* 	break; */
-/*     case FF_PID_TRAJ_JOINTS: */
-/* 	//Feedforward control with PID */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error2 = traj2[globalIndex] - thRH8global; */
-/* 	    errord2 = calculateTrajVel2() - velRH8global; */
-/* 	    errorInt2 += error2*DT; */
-/* 	    torque = feedForward2() + kp2*error2 + kd2*errord2 + ki2*errorInt2; */
-/* 	    reqCurrent = torque/KM2; */
-/* 	} */
-/* 	break; */
-/*     case DYNAMIC_GRASP_TRAJ: */
-/* 	//Dyanmic grasp */
-/* 	//Check for minimum distance on circle */
-/* 	errorX = traj1[globalIndex] - xObjectGlobal; */
-/* 	errorY = traj2[globalIndex] - yObjectGlobal; */
-/* 	errorTh = traj3[globalIndex] - thObjectGlobal; */
-/* 	if(fabs(errorTh) > fabs(2*M_PI - errorTh)) { */
-/* 	    errorTh = 2.0*M_PI - errorTh; */
-/* 	} else if(fabs(errorTh) > fabs(2*M_PI + errorTh)) { */
-/* 	    errorTh = 2.0*M_PI + errorTh; */
-/* 	}	  //Add code here to go from errors in OBJECT accel to manip accel */
-/* 	xodd = calculateTrajAccel1() + errorX*kp1; */
-/* 	yodd = calculateTrajAccel2() + errorY*kp2; */
-/* 	thodd = calculateTrajAccel3() + errorTh*kp3; */
-/* 	dynamicGraspControl(xodd, yodd, thodd, &xmdd, &ymdd, &thmdd); */
-/* 	th2dd = calculateJointAccelFromManipAccel2(xmdd,ymdd,thmdd); */
-/* 	torque = controlManipAccel2(xmdd, ymdd, thmdd); */
-/* //	reqCurrent = torque/KM2 + kp2curr*((thRH11global - th2Prev) + 0.5*DT*DT*th2dd) + kd2curr*(DT*th2dd); */
-/* 	break; */
-/*     case DYNAMIC_GRASP_POS: */
-/* 	//Hold a pose in dynamic grasp */
-/* 	errorX = objHomeX - xObjectGlobal; */
-/* 	errorY = objHomeY - yObjectGlobal; */
-/* 	errorTh = objHomeTh - thObjectGlobal; */
-/* 	if(fabs(errorTh) > fabs(2*M_PI - errorTh)) { */
-/* 	    errorTh = 2.0*M_PI - errorTh; */
-/* 	} else if(fabs(errorTh) > fabs(2*M_PI + errorTh)) { */
-/* 	    errorTh = 2.0*M_PI + errorTh; */
-/* 	} */
-/* 	xodd = errorX*kp1; */
-/* 	yodd = errorY*kp2; */
-/* 	thodd = errorTh*kp3; */
-/* 	dynamicGraspControl(xodd, yodd, thodd, &xmdd, &ymdd, &thmdd); */
-/* 	th2dd = calculateJointAccelFromManipAccel2(xmdd,ymdd,thmdd); */
-/* 	torque = controlManipAccel2(xmdd, ymdd, thmdd); */
-/* //	reqCurrent = torque/KM2 + kp2curr*((thRH11global - th2Prev)+0.5*DT*DT*th2dd) + kd2curr*(DT*th2dd); */
-/* 	break; */
-/*     case FF_PID_TRAJ_MANIP: */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error1 = traj1[globalIndex] - xManip_global; */
-/* 	    error2 = traj2[globalIndex] - yManip_global; */
-/* 	    error3 = traj3[globalIndex] - thManip_global; */
-/* 	    if(fabs(error3) > fabs(2*M_PI + error3)) { */
-/* 		error3 = 2.0*M_PI - error3; */
-/* 	    } else if(fabs(error3) > fabs(2*M_PI + error3)) { */
-/* 		error3 = 2.0*M_PI + error3; */
-/* 	    } */
-/* 	    errord1 = calculateTrajVel1() - velXManip_global; */
-/* 	    errord2 = calculateTrajVel2() - velYManip_global; */
-/* 	    errord3 = calculateTrajVel3() - velThManip_global; */
-/* 	    errorInt1 += error1; */
-/* 	    errorInt2 += error2; */
-/* 	    errorInt3 += error3; */
-/* 	    xmdd = calculateTrajAccel1() + kp1*error1 + kd1*errord1 + ki1*errorInt1; */
-/* 	    ymdd = calculateTrajAccel2() + kp2*error2 + kd2*errord2 + ki2*errorInt2; */
-/* 	    thmdd = calculateTrajAccel3() + kp3*error3 + kd3*errord3 + ki3*errorInt3; */
-/* 	    th2dd = calculateJointAccelFromManipAccel2(xmdd, ymdd, thmdd); */
-/* //	    desAccel2[globalIndex] = th2dd; */
-/* 	    torque = controlManipAccel2(xmdd, ymdd, thmdd); */
-/* //	    reqCurrent = torque/KM2 + kp2curr*((thRH11global - th2Prev)+0.5*DT*DT*th2dd) + kd2curr*(DT*th2dd); */
-/* 	} else reqCurrent = 0.0; */
-/* 	break; */
-/*     case PID_MANIP_POS: */
-/* 	error1 = home1 - xManip_global; */
-/* 	error2 = home2 - yManip_global; */
-/* 	error3 = home3 - thManip_global; */
-/* 	if(fabs(error3) > fabs(2*M_PI + error3)) { */
-/* 	    error3 = 2.0*M_PI - error3; */
-/* 	} else if(fabs(error3) > fabs(2*M_PI + error3)) { */
-/* 	    error3 = 2.0*M_PI + error3; */
-/* 	} */
-/* 	errord1 = -1.0*velXManip_global; */
-/* 	errord2 = -1.0*velYManip_global; */
-/* 	errord3 = -1.0*velThManip_global; */
-/* 	errorInt1 += error1; */
-/* 	errorInt2 += error2; */
-/* 	errorInt3 += error3; */
-/* 	xmdd = kp1*error1 + kd1*errord1 + ki1*errorInt1; */
-/* 	ymdd = kp2*error2 + kd2*errord2 + ki2*errorInt2; */
-/* 	thmdd = kp3*error3 + kd3*errord3 + ki3*errorInt3; */
-/* 	th2dd = calculateJointAccelFromManipAccel2(xmdd, ymdd, thmdd); */
-/* 	torque = controlManipAccel2(xmdd,ymdd,thmdd); */
-/* //	reqCurrent = torque/KM2 + kp2curr*((thRH11global - th2Prev)+0.5*DT*DT*th2dd) + kd2curr*(DT*th2dd); */
-/* 	break; */
-/*     default: break; */
-/*     } */
-/*     th2Prev = thRH11global; */
-/*     //Setting the control will check bounds */
-/*     return reqCurrent; */
-/* } */
-
-/* //RH8, motor 3 */
-/* double calculateControl3() { */
-/*     //Initialize variables to 0 */
-/*     double reqCurrent = 0; */
-/*     //Required torque */
-/*     double torque = 0; */
-    
-/*     double xmdd, ymdd, thmdd; */
-/*     double xodd, yodd, thodd; */
-/*     double errorX, errorY, errorTh; */
-/*     static double th3Prev = 0.0; */
-
-/*     double th3dd; */
-    
-/*     //Determine our control mode */
-/*     switch(control_mode) { */
-/*     case NO_CONTROL: */
-/* 	//Don't do anything, use 0 current */
-/* 	break; */
-/*     case GO_HOME_JOINTS: */
-/* 	//Go home */
-/* 	//Calculate current error */
-/* 	error3 = home3 - thRH8global; */
-/* 	//Update integral error */
-/* 	errorInt3 += error3*DT; */
-/* 	//Use PI + gravComp for home control */
-/* 	torque = KPH3*error3 + KIH3*errorInt3; */
-/* 	reqCurrent = torque/KM3; */
-/* 	break; */
-/*     case TRAJ_IS_CURRENT: */
-/* 	//Trajectories are actually current vals */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    reqCurrent = traj3[globalIndex]; */
-/* 	} */
-/* 	break; */
-/*     case FEEDFORWARD_JOINTS: */
-/* 	//Feedforward control */
-/* 	torque = feedForward3(); */
-/* 	reqCurrent = torque/KM3; */
-/* 	break; */
-/*     case PID_TRAJ_JOINTS: */
-/* 	//PID Traj control */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error3 = traj3[globalIndex] - thRH8global; */
-/* 	    errord3 = calculateTrajVel3() - velRH8global; */
-/* 	    errorInt3 += error3*DT; */
-/* 	    torque = kp3*error3 + kd3*errord3 + ki3*errorInt3; */
-/* 	    reqCurrent = torque/KM3; */
-/* 	} */
-/* 	break; */
-/*     case FF_PID_TRAJ_JOINTS: */
-/* 	//Feedforward control with PID */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error3 = traj3[globalIndex] - thRH8global; */
-/* 	    errord3 = calculateTrajVel3() - velRH8global; */
-/* 	    errorInt3 += error3*DT; */
-/* 	    torque = feedForward3() + kp3*error3 + kd3*errord3 + ki3*errorInt3; */
-/* 	    reqCurrent = torque/KM3; */
-/* 	} */
-/* 	break; */
-/*     case DYNAMIC_GRASP_TRAJ: */
-/* 	//Dyanmic grasp follow a traj */
-/* 	errorX = traj1[globalIndex] - xObjectGlobal; */
-/* 	errorY = traj2[globalIndex] - yObjectGlobal; */
-/* 	errorTh = traj3[globalIndex] - thObjectGlobal; */
-/* 	//Check for minimum distance on circle */
-/* 	if(fabs(errorTh) > fabs(2*M_PI - errorTh)) { */
-/* 	    errorTh = 2.0*M_PI - errorTh; */
-/* 	} else if(fabs(errorTh) > fabs(2*M_PI + errorTh)) { */
-/* 	    errorTh = 2.0*M_PI + errorTh; */
-/* 	} */
-/* 	//Add code here to go from errors in OBJECT accel to manip accel */
-/* 	xodd = calculateTrajAccel1() + errorX*kp1; */
-/* 	yodd = calculateTrajAccel2() + errorY*kp2; */
-/* 	thodd = calculateTrajAccel3() + errorTh*kp3; */
-/* 	dynamicGraspControl(xodd, yodd, thodd, &xmdd, &ymdd, &thmdd); */
-/* 	th3dd = calculateJointAccelFromManipAccel3(xmdd,ymdd,thmdd); */
-/* 	torque = controlManipAccel3(xmdd, ymdd, thmdd); */
-/* //	reqCurrent = torque/KM3 + kp3curr*((thRH8global - th3Prev) + 0.5*DT*DT*th3dd) + kd3curr*(DT*th3dd); */
-/* 	break; */
-/*     case DYNAMIC_GRASP_POS: */
-/* 	//Hold a pose in dynamic grasp */
-/* 	errorX = objHomeX - xObjectGlobal; */
-/* 	errorY = objHomeY - yObjectGlobal; */
-/* 	errorTh = objHomeTh - thObjectGlobal; */
-/* 	if(fabs(errorTh) > fabs(2*M_PI - errorTh)) { */
-/* 	    errorTh = 2.0*M_PI - errorTh; */
-/* 	} else if(fabs(errorTh) > fabs(2*M_PI + errorTh)) { */
-/* 	    errorTh = 2.0*M_PI + errorTh; */
-/* 	} */
-/* 	xodd = errorX*kp1; */
-/* 	yodd = errorY*kp2; */
-/* 	thodd = errorTh*kp3; */
-/* 	dynamicGraspControl(xodd, yodd, thodd, &xmdd, &ymdd, &thmdd); */
-/* 	th3dd = calculateJointAccelFromManipAccel3(xmdd,ymdd,thmdd); */
-/* 	torque = controlManipAccel3(xmdd, ymdd, thmdd); */
-/* //	reqCurrent = torque/KM3 + kp3curr*((thRH8global - th3Prev) + 0.5*DT*DT*th3dd) + kd3curr*(DT*th3dd); */
-/* 	break; */
-/*     case FF_PID_TRAJ_MANIP: */
-/* 	if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	    error1 = traj1[globalIndex] - xManip_global; */
-/* 	    error2 = traj2[globalIndex] - yManip_global; */
-/* 	    error3 = traj3[globalIndex] - thManip_global; */
-/* 	    if(fabs(error3) > fabs(2*M_PI - error3)) { */
-/* 		error3 = 2.0*M_PI - error3; */
-/* 	    } else if(fabs(error3) > fabs(2*M_PI + error3)) { */
-/* 		error3 = 2.0*M_PI + error3; */
-/* 	    } */
-/* 	    errord1 = calculateTrajVel1() - velXManip_global; */
-/* 	    errord2 = calculateTrajVel2() - velYManip_global; */
-/* 	    errord3 = calculateTrajVel3() - velThManip_global; */
-/* 	    errorInt1 += error1; */
-/* 	    errorInt2 += error2; */
-/* 	    errorInt3 += error3; */
-/* 	    xmdd = calculateTrajAccel1() + kp1*error1 + kd1*errord1 + ki1*errorInt1; */
-/* 	    ymdd = calculateTrajAccel2() + kp2*error2 + kd2*errord2 + ki2*errorInt2; */
-/* 	    thmdd = calculateTrajAccel3() + kp3*error3 + kd3*errord3 + ki3*errorInt3; */
-/* 	    th3dd = calculateJointAccelFromManipAccel3(xmdd,ymdd,thmdd); */
-/* //	    desAccel3[globalIndex] = th3dd; */
-/* 	    torque = controlManipAccel3(xmdd, ymdd, thmdd); */
-/* //	    reqCurrent = torque/KM3 + kp3curr*((thRH8global - th3Prev) + 0.5*DT*DT*th3dd) + kd3curr*(DT*th3dd); */
-/* 	} else reqCurrent = 0.0; */
-/* 	break; */
-/*     case PID_MANIP_POS: */
-/* 	error1 = home1 - xManip_global; */
-/* 	error2 = home2 - yManip_global; */
-/* 	error3 = home3 - thManip_global; */
-/* 	if(fabs(error3) > fabs(2*M_PI - error3)) { */
-/* 	    error3 = 2.0*M_PI - error3; */
-/* 	} else if(fabs(error3) > fabs(2*M_PI + error3)) { */
-/* 	    error3 = 2.0*M_PI + error3; */
-/* 	} */
-/* 	errord1 = -1.0*velXManip_global; */
-/* 	errord2 = -1.0*velYManip_global; */
-/* 	errord3 = -1.0*velThManip_global; */
-/* 	errorInt1 += error1; */
-/* 	errorInt2 += error2; */
-/* 	errorInt3 += error3; */
-/* 	xmdd = kp1*error1 + kd1*errord1 + ki1*errorInt1; */
-/* 	ymdd = kp2*error2 + kd2*errord2 + ki2*errorInt2; */
-/* 	thmdd = kp3*error3 + kd3*errord3 + ki3*errorInt3; */
-/* 	th3dd = calculateJointAccelFromManipAccel3(xmdd,ymdd,thmdd); */
-/* 	torque = controlManipAccel3(xmdd,ymdd,thmdd); */
-/* //	reqCurrent = torque/KM3 + kp3curr*((thRH8global - th3Prev) + 0.5*DT*DT*th3dd) + kd3curr*(DT*th3dd); */
-/* 	break; */
-/*     default: break; */
-/*     } */
-/*     th3Prev = thRH8global; */
-/*     //Setting the control will check bounds */
-/*     return reqCurrent; */
-/* } */
-
-/* double feedForward1() { */
-/*     double s1, s2, s12, c1, c2, c12, th1dot, th2dot, th1ddot, th2ddot, th3ddot, torqueDes, torqueFriction; */
-/*     double th1, th2; */
-
-/*     if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	th1 = traj1[globalIndex]; */
-/* 	th2 = traj2[globalIndex]; */
-/* 	s1 = sin(th1); */
-/* 	s2 = sin(th2); */
-/* 	s12 = sin(th1+th2); */
-/* 	c1 = cos(th1); */
-/* 	c2 = cos(th2); */
-/* 	c12 = cos(th1+th2); */
-/* 	th1dot = calculateTrajVel1(); */
-/* 	th2dot = calculateTrajVel2(); */
-/* 	th1ddot = calculateTrajVel1(); */
-/* 	th2ddot = calculateTrajVel2(); */
-/* 	th3ddot = calculateTrajVel3(); */
-
-/* 	torqueDes = -0.5*g*(L1*(m1+2.0*(m2 + m3 + mm2 + mm3))*c1 + \ */
-/* 			    L2*(m2+2.0*(m3+mm3))*c12) - \ */
-/* 	    L1*L2*(m2+2.0*(m3+mm3))*s2*th1dot*th2dot - \ */
-/* 	    0.5*L1*L2*(m2+2.0*(m3+mm3))*s2*th2dot*th2dot + \ */
-/* 	    (I1 + I2 +I3 + L2*L2*(m2*0.25+m3+mm3)+L1*L1*(m1*.25+m2+m3+mm2+mm3) + \ */
-/* 	     J1+J2+J3 + L1*L2*(m2+2.0*(m3+mm3))*c2)*th1ddot + \ */
-/* 	    (I2+I3+L2*L2*(m2*0.25+m3+mm3) + J2 + J3+ \ */
-/* 	     0.5*L1*L2*(m2+2.0*(m3+mm3))*c2)*th2ddot + \ */
-/* 	    (I3+J3)*th3ddot; */
-/* 	torqueFriction = MUD1*th1dot; */
-/* 	if (th1dot > 0.0) */
-/* 	    torqueFriction += MUS1; */
-/* 	else if(th1dot < 0.0) */
-/* 	    torqueFriction -= MUS1; */
-/* 	return torqueDes + torqueFriction; */
-/*     } else */
-/* 	return 0.0; */
-/* } */
-
-/* double feedForward2() { */
-/*     double th1, th2, s12, s2, c12, c2, th1dot, th2dot, th1ddot, th2ddot, th3ddot, torqueDes, torqueFriction; */
-/*     if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	th1 = traj1[globalIndex]; */
-/* 	th2 = traj2[globalIndex]; */
-/* 	s12 = sin(th1 + th2); */
-/* 	c12 = cos(th1 + th2); */
-/* 	s2 = sin(th2); */
-/* 	c2 = cos(th2); */
-/* 	th1dot = calculateTrajVel1(); */
-/* 	th2dot = calculateTrajVel2(); */
-/* 	th1ddot = calculateTrajAccel1(); */
-/* 	th2ddot = calculateTrajAccel2(); */
-/* 	th3ddot = calculateTrajAccel3(); */
-/* 	torqueDes = 0.25*(-2.0*g*L2*(m2+2.0*(m3+mm3))*c12 + \ */
-/* 			  2.0*L1*L2*(m2+2.0*(m3+mm3))*s2*th1dot*th1dot + \ */
-/* 			  (4.0*I2 + 4.0*I3 + L2*L2*(m2+4.0*(m3+mm3)) + 4.0*(J2+J3) + \ */
-/* 			   2.0*L1*L2*(m2+2.0*(m3+mm3))*c2)*th1ddot + \ */
-/* 			  (4.0*I2+4.0*I3+L2*L2*(m2+4.0*(m3+mm3))+4.0*(J2+J3))*th2ddot + \ */
-/* 			  4.0*(I3+J3)*th3ddot); */
-
-/* 	torqueFriction = MUD2*th2dot; */
-/* 	if(th2dot > 0.0) */
-/* 	    torqueFriction += MUS2; */
-/* 	else if(th2dot < 0.0) */
-/* 	    torqueFriction -= MUS2; */
-/* 	return torqueDes + torqueFriction; */
-/*     } */
-/*     else return 0.0; */
-/* } */
-
-/* double feedForward3() { */
-/*     double torqueDes, th3dot, torqueFriction; */
-/*     if(globalIndex >= 0 && globalIndex < num_pts && running) { */
-/* 	torqueDes = (I3+J3)*(calculateTrajAccel1() + calculateTrajAccel2() + calculateTrajAccel3()); */
-/* 	th3dot = calculateTrajVel3(); */
-/* 	torqueFriction = MUD3*th3dot; */
-/* 	if(th3dot > 0.0) */
-/* 	    torqueFriction += MUS3; */
-/* 	else if(th3dot < 0.0) */
-/* 	    torqueFriction -= MUS3; */
-/* 	return torqueDes + torqueFriction; */
-/*     } else return 0.0; */
-/* } */
-
-/* double controlManipAccel1(double xmdd, double ymdd, double thmdd) { */
-/*     static int printCount = 0; */
-/*     static double oldTorqueDes = 0.0; */
-/*     double th1, th2, th3, th1d, th2d, th3d; */
-/*     double c1, c2, c12, s1, s12, s2, c122, s122, c1_2, s1_2; */
-/*     double torqueFric, torqueDes; */
-/*     th1 = thRH14global; */
-/*     th2 = thRH11global; */
-/*     th3 = thRH8global; */
-/*     th1d = velRH14global; */
-/*     th2d = velRH11global; */
-/*     th3d = velRH8global; */
-/*     printCount++; */
-
-/*     if(fabs(th2) < 0.05) return oldTorqueDes; */
-/*     torqueFric = th1d*MUD1; */
-/*     if(th1d >= 0.0) */
-/* 	torqueFric += MUS1; */
-/*     else if(th1d < 0.0) */
-/* 	torqueFric -= MUS1; */
-/*     if(control_mode == PID_MANIP_POS || control_mode == DYNAMIC_GRASP_POS) */
-/*     	torqueFric = th1d*MUD1; */
-/*     c1 = cos(th1); */
-/*     c12 = cos(th1+th2); */
-/*     c2 = cos(th2); */
-/*     s1 = sin(th1); */
-/*     s2 = sin(th2); */
-/*     s12 = sin(th1+th2); */
-/*     c122 = cos(th1+2.0*th2); */
-/*     s122 = sin(th1+2.0*th2); */
-/*     c1_2 = cos(th1-th2); */
-/*     s1_2 = sin(th1-th2); */
-
-/*     torqueDes = 0.25*(-2.0*g*(L1*(m1 + 2.0*m2 + 2.0*m3 + 2.0*mm2 + 2.0*mm3)*c1 + \ */
-/* 			      L2*(m2+2.0*m3+2.0*mm3)*c12) - 4.0*L1*L2*(m2+2.0*m3+2.0*mm3)*s2*th1d*th2d - \ */
-/* 		      2.0*L1*L2*(m2 + 2.0*m3 + 2.0*mm3)*s2*th2d*th2d + \ */
-/* 		      1.0/(L1*L2)*(-2.0*L1*(2.0*I2 + L2*L2*(m3 + mm3) + 2.0*J2)*c1 + \ */
-/* 				   L2*(-1.0*L1*L1*(m2+2.0*m3+2.0*mm3)*c1_2 + \ */
-/* 				       (4.0*I1 + L1*L1*(m1+3.0*m2+2.0*m3+4.0*mm2+2.0*mm3) + \ */
-/* 					4.0*J1)*c12 + L1*L2*(m2 + 2.0*m3 + 2.0*mm3)*c122)) * \ */
-/* 		      1.0/s2*(L1*c1*th1d*th1d + L2*c1*c2*(th1d + th2d)*(th1d + th2d) - \ */
-/* 			      L2*s1*s2*(th1d+th2d)*(th1d+th2d) - xmdd) + \ */
-/* 		      1.0/(L1*L2*s2)*(-2.0*L1*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*J2)*s1 + \ */
-/* 				      L2*(-1.0*L1*L1*(m2+2.0*(m3+mm3))*s1_2 + \ */
-/* 					  (4.0*I1 + L1*L1*(m1 + 3.0*m2+2.0*m3+4.0*mm2+2.0*mm3) + 4.0*J1)*s12 + \ */
-/* 					  L1*L2*(m2+2.0*m3+2.0*mm3)*s122))* \ */
-/* 		      (L1*s1*th1d*th1d + L2*c2*s1*(th1d+th2d)*(th1d+th2d) +	\ */
-/* 		       L2*c1*s2*(th1d+th2d)*(th1d+th2d) - ymdd) + 4.0*(I3+J3)*thmdd); */
-/*     torqueDes += torqueFric; */
-/* //    if(printCount >= 1500) { */
-/* //    	printf("th1: %f, th2: %f, th3: %f\n", th1, th2, th3); */
-/* //    	printf("th1d: %f, th2d: %f, th3d: %f\n", th1d, th2d, th3d); */
-/* //    	printf("staticFric: %f, torqueDes: %f\n", staticFric, torqueDes); */
-/* //    	//c1, c2, c12, s1, s12, s2, c122, s122, c1_2, s1_2 */
-/* //    	printf("c1: %f, c2: %f, c12: %f\n", c1, c2, c12); */
-/* //    	printf("s1: %f, s12: %f, s2: %f\n", s1, s12, s2); */
-/* //    	printf("c122: %f, s122: %f, c1_2: %f, s1_2: %f\n",c122, s122, c1_2, s1_2); */
-/* //    	printCount = 0; */
-/* //    } */
-/*     oldTorqueDes = torqueDes; */
-/*     return torqueDes; */
-/* } */
-/* double controlManipAccel2(double xmdd, double ymdd, double thmdd) { */
-/*     double th1, th2, th1d, th2d; */
-/*     double c1, c2, c12, c122, s1, s2, s122; */
-/*     static double oldTorqueDes = 0.0; */
-/*     th1 = thRH14global; */
-/*     th2 = thRH11global; */
-/*     th1d = velRH14global; */
-/*     th2d = velRH11global; */
-/*     double torqueFric, torqueDes; */
-/*     torqueFric = th2d*MUD2; */
-/*     if(fabs(th2) < 0.05) return oldTorqueDes; */
-/*     if(th2d >= 0.0) */
-/* 	torqueFric += MUS2; */
-/*     else if(th2d < 0.0) */
-/* 	torqueFric -= MUS2; */
-/*     if(control_mode == PID_MANIP_POS || control_mode == DYNAMIC_GRASP_POS) */
-/*         	torqueFric = th2d*MUD2; */
-/*     c1 = cos(th1); */
-/*     c2 = cos(th2); */
-/*     c12 = cos(th1+th2); */
-/*     s1 = sin(th1); */
-/*     s2 = sin(th2); */
-/*     c122 = cos(th1+2.0*th2); */
-/*     s122 = sin(th1+2.0*th2); */
-/*     torqueDes = 1.0/(4.0*L2)*(-2.0*g*L2*L2*(m2+2.0*m3+2.0*mm3)*c12 - \ */
-/* 			      (4.0*I2-L2*L2*m2 + 4.0*J2)*(L1+L2*c2)*th1d*th1d/s2 + \ */
-/* 			      L2*th2d*(-1.0*(4.0*I2 - L2*L2*m2 + 4.0*J2)*c2/s2*(2.0*th1d + th2d)) + \ */
-/* 			      1.0/s2*((2.0*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*J2)*c1 - \ */
-/* 				       L2*L2*(m2+2.0*m3+2.0*mm3)*c122)*xmdd + \ */
-/* 				      (2.0*(2.0*I2 + L2*L2*(m3+mm3) + 2.0*J2)*s1 - \ */
-/* 				       L2*L2*(m2 +2.0*m3+2.0*mm3)*s122)*ymdd) + \ */
-/* 			      4.0*L2*(I3+J3)*thmdd); */
-/*     torqueDes += torqueFric; */
-/* //    printf("tau2: %f\n",torqueDes); */
-/*     oldTorqueDes = torqueDes; */
-/*     return torqueDes; */
-/* } */
-
-/* double controlManipAccel3(double xmdd, double ymdd, double thmdd) { */
-/*     double th3, torqueFric, th3d; */
-/*     th3 = thRH8global; th3d = velRH8global; */
-/*     torqueFric = th3d*MUD3; */
-/*     if(th3d >= 0.0) */
-/* 	torqueFric += MUS3; */
-/*     else if(th3d < 0.0) */
-/* 	torqueFric -= MUS3; */
-/*     if(control_mode == PID_MANIP_POS || control_mode == DYNAMIC_GRASP_POS) */
-/*         	torqueFric = th3d*MUD3; */
-/* //    printf("tau3: %f\n",staticFric + MUD3*th3d + (I3 + J3)*thmdd); */
-
-/*     return torqueFric + (I3 + J3)*thmdd; */
-/* } */
-
 double calculateTrajVel1(void) {
     if(globalIndex < 1 || globalIndex >= num_pts-1) return 0.0;
     else {
@@ -1239,7 +608,6 @@ double calculateTrajAccel3(void) {
 //Then calculates required manipulator accelerations (based on kinematic equations)
 //These controls are still fictitous, but they are translated by later functions to motor commands
 void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, double *ymdd, double *thmdd) {
-    static int printTimer = 0;
     double cm, sm, thmd, thm;
     thm = thManip_global;
     thmd = velThManip_global;
@@ -1251,20 +619,6 @@ void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, d
 	((wm+wo)*cm + (contactPoint1 - lm + lo)*sm)*thodd;
     *ymdd = ((wm+wo)*cm + (contactPoint1 - lm + lo)*sm)*thmd*thmd + yodd + \
 	((lm - contactPoint1 - lo)*cm + (wm + wo)*sm)*thodd;
-
-    printTimer++;
-//    if(printTimer >= 10000 && control_mode != NO_CONTROL) {
-////    	printf("Curr1: %f, curr2: %f, curr3: %f\n", desCur1, desCur2, desCur3);
-////    	printf("th1: %f, th2: %f, th3: %f\n",thRH14global, thRH11global,thRH8global);
-//    	printf("xm: %f, ym: %f, thm: :%f\n", xManip_global, yManip_global, thManip_global);
-////    	printf("th1d: %f, th2d: %f, th3d: %f\n", velRH14global, velRH11global, velRH8global);
-//    	printf("xObj: %f, yObj: %f, thObj: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal);
-//    	printf("velXObj: %f, velYObj: %f, velthObj: %f\n", velXObjectGlobal, velYObjectGlobal, velThObjectGlobal);
-//    	printf("Contact1: %f, contact2: %f\n", contactPoint1, contactPoint2);
-//    	printf("xodd: %f, yodd: %f, thodd: %f\n", xodd, yodd, thodd);
-//    	printf("xmdd: %f, ymdd: %f, thmdd: %f\n\n", *xmdd, *ymdd, *thmdd);
-//    	printTimer = 0;
-//    }
 }
 
 void arcLengthContactPoints() {
@@ -1287,81 +641,9 @@ void arcLengthContactPoints() {
 	contactPoint1 = (yc1 - ym - wm*cos(thm) + lm*sin(thm))/sin(thm);
     }
     contactPoint2 = contactPoint1 + 2.0*lo;
-    //print just to check if this makes sense
-//    if(newCameraData) {
-//    printf("xM: %f, yM: %f, thm: %f\n",xm,ym,thm);
-//    printf("xo: %f, yo: %f, tho: %f\n",xObjectGlobal, yObjectGlobal, thObjectGlobal);
-//    printf("s1: %f, s2: %f\n", contactPoint1, contactPoint2);
-//    printf("xRH14: %f, yRH14: %f, thRH14: %f\n", xGlobal[0], yGlobal[0], th1);
-//    printf("xRH11: %f, yRH11: %f, thRH11: %f\n", xGlobal[1], yGlobal[1], th2);
-//    printf("xRH8: %f, yRH8: %f, thRH8: %f\n", xGlobal[2], yGlobal[2], th3);
-//    printf("xMark1: %f, yMark1: %f\n",xGlobal[3], yGlobal[3]);
-//    printf("xMark2: %f, yMark2: %f\n",xGlobal[4], yGlobal[4]);
-//    printf("Area1: %d, Area2: %d, Area3: %d, Area4: %d, Area5: %d\n", areaGlobal[0], \
-//    		areaGlobal[1], areaGlobal[2], areaGlobal[3], areaGlobal[4]);
-//    }
-//    else { printf("No new cam data");}
 }
 
-/* double calculateJointAccelFromManipAccel1(double xmdd, double ymdd, double thmdd) { */
-/*     double th1, th2, th1d, th2d; */
-/*     double s2, c2, c12, s12; */
-/*     double th1dd; */
-/*     static double th1ddOld = 0.0; */
-/*     th1 = thRH14global; */
-/*     th2 = thRH11global; */
-/*     th1d = velRH14global; */
-/*     th2d = velRH11global; */
-/*     if(fabs(th2) < 0.01) return th1ddOld; */
-
-/*     s2 = sin(th2); c2 = cos(th2); */
-/*     c12 = cos(th1+th2); s12 = sin(th1+th2); */
-
-/*     th1dd = 1.0/L1*(1.0/s2*(L1*c2*th1d*th1d + L2*(th1d+th2d)*(th1d+th2d) - c12*xmdd - s12*ymdd)); */
-/*     th1ddOld = th1dd; */
-/*     return th1dd; */
-/* } */
-
-/* double calculateJointAccelFromManipAccel2(double xmdd, double ymdd, double thmdd) { */
-/*     double th1, th2, th1d, th2d; */
-/*     double s2, c2, c1, c12, s1, s12; */
-/*     double th2dd; */
-/*     static double th2ddOld = 0.0; */
-/*     th1 = thRH14global; */
-/*     th2 = thRH11global; */
-/*     th1d = velRH14global; */
-/*     th2d = velRH11global; */
-/*     if(fabs(th2) < 0.01) return th2ddOld; */
-
-/*     s2 = sin(th2); c2 = cos(th2); */
-/*     c1 = cos(th1); c12 = cos(th1+th2); */
-/*     s1 = sin(th1); s12 = sin(th1+th2); */
-
-/*     th2dd = 1.0/(L1*L2*s2)*(-1.0*(L1*L1+L2*L2+2*L1*L2*c2)*th1d*th1d - \ */
-/* 			    2.0*L2*(L2 + L1*c2)*th1d*th2d - \ */
-/* 			    L2*(L2+L1*c2)*th2d*th2d + \ */
-/* 			    (L1*c1+L2*c12)*xmdd + \ */
-/* 			    (L1*s1+L2*s12)*ymdd); */
-/*     th2ddOld = th2dd; */
-/*     return th2dd; */
-/* } */
-
-/* double calculateJointAccelFromManipAccel3(double xmdd, double ymdd, double thmdd) { */
-/*     double th1, th2, th1d, th2d; */
-/*     double s2, c2, c1, s1; */
-/*     th1 = thRH14global; */
-/*     th2 = thRH11global; */
-/*     th1d = velRH14global; */
-/*     th2d = velRH11global; */
-/*     if(fabs(th2) < 0.01) return thmdd; */
-/*     s2 = sin(th2); s1 = sin(th1); */
-/*     c2 = cos(th2); c1 = cos(th1); */
-    
-/*     return 1.0/(sin(th2)*L2)*(L1*th1d*th1d + L2*c2*(th1d+th2d)* \ */
-/* 			      (th1d+th2d) - c1*xmdd - s1*ymdd) + \ */
-/* 	thmdd; */
-/* } */
-
+//This calculates tau = M qdd + C + G + Ff
 void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
 		  double th1ddot, double th2ddot, double th3ddot, \
 		  double th1dot, double th2dot, double th3dot, \
@@ -1403,7 +685,7 @@ void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
     if(control_mode == PID_MANIP_POS || control_mode == DYNAMIC_GRASP_POS || control_mode == GO_HOME_JOINTS)
         	staticFric = 0.0;
     else
-        	staticFric = MUS2;
+    	staticFric = MUS2;
     torqueFric2 = MUD2*th2dot;
     if(th2dot > 0.0)
 	torqueFric2 += staticFric;
@@ -1412,10 +694,11 @@ void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
     *torqueDes2 += torqueFric2;
 
     //th3
-    if(control_mode == PID_MANIP_POS || control_mode == DYNAMIC_GRASP_POS || control_mode == GO_HOME_JOINTS)
+    if(control_mode == PID_MANIP_POS || control_mode == DYNAMIC_GRASP_POS || control_mode == GO_HOME_JOINTS \
+    		|| control_mode == ONE_POINT_ROLL_BALANCE)
     	staticFric = 0.0;
     else
-    	staticFric = MUS3;//MUS3;
+    	staticFric = MUS3;
     torqueFric3 = MUD3*th3dot;
 
     if(th3dot > 0.0)
@@ -1425,6 +708,7 @@ void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
     *torqueDes3 = torqueFric3 + (J3+I3)*(th1ddot + th2ddot + th3ddot);
 }
 
+//This calculates qdd = J^-1 (xdd - Jdot J^-1 xd)
 void calculateJointAccelFromManipAccel(double xmdd, double ymdd, double thmdd, \
 				       double *th1dd, double *th2dd, double *th3dd) {
     double th1, th2, th1d, th2d;

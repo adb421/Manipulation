@@ -312,12 +312,12 @@ void procCmd5() {
  //   control_mode = DYNAMIC_GRASP_TRAJ;
     //Follow a manipulator trajectory
     //Go back to this!!!!!!!!
-    control_mode = FF_PID_TRAJ_MANIP;
+//    control_mode = FF_PID_TRAJ_MANIP;
     //BALANCE THAT ISH
-//    control_mode = ONE_POINT_ROLL_BALANCE;
-//    home1 = traj1[num_pts - 1];
-//    home2 = traj2[num_pts - 1];
-//    home3 = traj3[num_pts - 1];
+    control_mode = ONE_POINT_ROLL_BALANCE;
+    home1 = traj1[num_pts - 1];
+    home2 = traj2[num_pts - 1];
+    home3 = traj3[num_pts - 1];
     //Right now, want to get estimate of gravity!
     //control_mode = NO_CONTROL;
 }
@@ -499,6 +499,9 @@ void procCmd13() {
     for(i = 0; i < 24; i++) {
     	readDouble(&(K_lqr[i]));
     }
+    readDouble(&INNER_K1_14); readDouble(&INNER_K2_14);
+    readDouble(&INNER_K1_11); readDouble(&INNER_K2_11);
+    readDouble(&INNER_K1_8); readDouble(&INNER_K2_8);
     sendString("LQRUPDATED\n");
 }
 

@@ -38,37 +38,64 @@
 #define DT			   (0.001) //time in seconds
 
 //LQR Point Roll Balance points
-#define X_OBJ_ROLL_GOAL (-0.25)
+#define X_MANIP_ROLL_GOAL (-0.2)
+#define Y_MANIP_ROLL_GOAL (-0.1 - .0255 - 0.0498) //params.wm & params.lc
+#define X_OBJ_ROLL_GOAL (-0.2)
 #define Y_OBJ_ROLL_GOAL (-0.1)
+#define TH_OBJ_ROLL_GOAL (M_PI/2.0 - OBJECT_ANGLE)
 
 //LQR gains, do it this way for now IM LAZY
-#define K11 (0.0083)
-#define K12 (0.0221)
-#define K13 (-9.997)
-#define K14 (-16.5494)
+//#define K11 (0.0083)
+//#define K12 (0.0221)
+//#define K13 (-9.997)
+//#define K14 (-16.5494)
+//#define K15 (0.0)
+//#define K16 (0.0)
+//#define K17 (47.5807)
+//#define K18 (10.5380)
+//
+//#define K21 (0.0)
+//#define K22 (0.0)
+//#define K23 (0.0)
+//#define K24 (0.0)
+//#define K25 (10.0)
+//#define K26 (10.9545)
+//#define K27 (0.0)
+//#define K28 (0.0)
+//
+//#define K31 (0.3161)
+//#define K32 (0.8557)
+//#define K33 (0.2613)
+//#define K34 (0.4415)
+//#define K35 (0.0)
+//#define K36 (0.0)
+//#define K37 (1.2101)
+//#define K38 (-0.2687)
+//Try this:
+#define K11 (0.191)
+#define K12 (0.0621)
+#define K13 (-0.9998)
+#define K14 (-2.0466)
 #define K15 (0.0)
 #define K16 (0.0)
-#define K17 (47.5807)
-#define K18 (10.5380)
-
+#define K17 (9.9146)
+#define K18 (1.4487)
 #define K21 (0.0)
 #define K22 (0.0)
 #define K23 (0.0)
 #define K24 (0.0)
-#define K25 (10.0)
-#define K26 (10.9545)
+#define K25 (1.0)
+#define K26 (1.7321)
 #define K27 (0.0)
 #define K28 (0.0)
-
-#define K31 (0.3161)
-#define K32 (0.8557)
-#define K33 (0.2613)
-#define K34 (0.4415)
+#define K31 (0.9998)
+#define K32 (1.7312)
+#define K33 (0.0191)
+#define K34 (0.0624)
 #define K35 (0.0)
 #define K36 (0.0)
-#define K37 (1.2101)
-#define K38 (-0.2687)
-
+#define K37 (-0.2239)
+#define K38 (0.0336)
 
 //From motor data sheet
 #define KM1		(2.92)
@@ -77,9 +104,9 @@
 #define J1		(0.0216)
 #define J2		(0.043)
 #define J3		(0.0037)
-#define MUS1	(1.2556)
-#define MUS2	(1.522)
-#define MUS3	(0.504)
+#define MUS1	(1.2556/2.0)
+#define MUS2	(1.5221/2.0)
+#define MUS3	(0.504/2.0)
 #define MUD1	(0.035*30.0/M_PI)
 #define MUD2	(0.017*30.0/M_PI)
 #define MUD3	(0.0097*30.0/M_PI)
@@ -169,13 +196,7 @@ void set_control_RH14(uintptr_t iobase, double desCurrent);
 void initialize_variables();
 void initialize_junus(uintptr_t iobase);
 void simpleReset();
-//double controlManipAccel1(double xmdd, double ymdd, double thmdd);
-//double controlManipAccel2(double xmdd, double ymdd, double thmdd);
-//double controlManipAccel3(double xmdd, double ymdd, double thmdd);
 void dynamicGraspControl(double xodd, double yodd, double thodd, double *xmdd, double *ymdd, double *thmdd);
-//double calculateJointAccelFromManipAccel1(double xmdd, double ymdd, double thmdd);
-//double calculateJointAccelFromManipAccel2(double xmdd, double ymdd, double thmdd);
-//double calculateJointAccelFromManipAccel3(double xmdd, double ymdd, double thmdd);
 void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
 		  double th1ddot, double th2ddot, double th3ddot, \
 		  double th1dot, double th2dot, double th3dot, \
@@ -188,18 +209,6 @@ void flip_pin(uintptr_t iobase);
 
 uintptr_t iobase;
 uint16_t  DIO_word;
-
-//int currRH14;
-//int currRH11;
-//int currRH8;
-
-//int lastRH14;
-//int lastRH11;
-//int lastRH8;
-
-//long long total_countRH14;
-//long long total_countRH11;
-//long long total_countRH8;
 
 int control_mode;
 int globalIndex;
@@ -214,12 +223,8 @@ _uint64 longestLoopTime;
 double kp1, kp2, kp3;
 double kd1, kd2, kd3;
 double ki1, ki2, ki3;
-//double kp1curr, kp2curr, kp3curr;
-//double kd1curr, kd2curr, kd3curr;
 double K_lqr[24];
 
-//double error1, error2, error3;
-//double errord1, errord2, errord3;
 double errorInt1, errorInt2, errorInt3;
 
 double *position1, *position2, *position3;

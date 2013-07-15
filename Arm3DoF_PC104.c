@@ -163,9 +163,6 @@ void * control_loop_thread(void *arg) {
 	yManipCam_global = yGlobal[2];
 	if(fabs(xManipCam_global) > 10 || fabs(yManipCam_global) > 10)
 		printf("Saw large val problem\n");
-	//xObjCam = (xGlobal[3] + xGlobal[4])/2.0;
-	//yObjCam = (yGlobal[3] + yGlobal[4])/2.0;
-	//thObjCam = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
 	xGlobal[3] = xGlobal[3] - xManipCam_global + xManip_global;
 	xGlobal[4] = xGlobal[4] - xManipCam_global + xManip_global;
 	yGlobal[3] = yGlobal[3] - yManipCam_global + yManip_global;
@@ -203,9 +200,9 @@ void * control_loop_thread(void *arg) {
 	cameraFrameCount = 0;
     } else {
 	//estimate new pos based on velocity
-//	xObjectGlobal += velXObjectGlobal*DT;
-//	yObjectGlobal += velYObjectGlobal*DT;
-//	thObjectGlobal = thManip_global;
+	xObjectGlobal += velXObjectGlobal*DT;
+	yObjectGlobal += velYObjectGlobal*DT;
+	thObjectGlobal += velThObjectGlobal*DT;
     }
 
     if((globalIndex < num_pts && globalIndex >= 0) && running) {
