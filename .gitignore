@@ -1,8 +1,6 @@
 *.fig
 *.*~
 *.pdf
-Literature/
-MatlabARM3DoF/
 *.asv
 *.mk
 x86/
