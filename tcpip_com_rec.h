@@ -17,6 +17,7 @@ void * tcpip_com_rec_thread(void *arg);
 
 void readDouble(double * val);
 void readInt(int * val);
+int getDoublePacket(double* val, int len);
 
 int mBuf_rec[4];
 int mInitialized_rec;

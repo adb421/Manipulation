@@ -44,8 +44,9 @@ classdef PC104_Arm3DoF < handle
             obj.IPout = tcpip('192.168.1.50',obj.port_out);
             set(obj.IPin,'ByteOrder','littleEndian');
             set(obj.IPout,'ByteOrder','littleEndian');
-            set(obj.IPin,'InputBufferSize',4095);
-            set(obj.IPout,'OutputBufferSize',4095);
+            set(obj.IPin,'InputBufferSize',1500);
+            set(obj.IPout,'OutputBufferSize',1500);
+            set(obj.IPout,'Timeout',5);
             fopen(obj.IPin);
             fopen(obj.IPout);
             disp('Connected');
@@ -69,22 +70,28 @@ classdef PC104_Arm3DoF < handle
                     return;
                 end
                 disp('Sending control gains')
-                for i = 1:3
-                    fwrite(obj.IPout,kp(i),'double');
-                end
-                for i = 1:3
-                    fwrite(obj.IPout,kd(i),'double');
-                end
-                for i = 1:3
-                    fwrite(obj.IPout,ki(i),'double');
-                end
-                %Go K1, K2, K1, K2, K1, K2 from RH14->11->8
-                fwrite(obj.IPout,obj.params.k1RH14,'double');
-                fwrite(obj.IPout,obj.params.k2RH14,'double');
-                fwrite(obj.IPout,obj.params.k1RH11,'double');
-                fwrite(obj.IPout,obj.params.k2RH11,'double');
-                fwrite(obj.IPout,obj.params.k1RH8,'double');
-                fwrite(obj.IPout,obj.params.k2RH8,'double');
+                %Do this the new way:
+                gainSend = [kp, kd, ki, obj.params.k1RH14 obj.params.k2RH14 ...
+                    obj.params.k1RH11 obj.params.k2RH11 obj.params.k1RH8 ...
+                    obj.params.k2RH8];
+                obj.sendDoubles(gainSend);
+        %                fwrite(obj.IPout,gainSend,'double');
+%                 for i = 1:3
+%                     fwrite(obj.IPout,kp(i),'double');
+%                 end
+%                 for i = 1:3
+%                     fwrite(obj.IPout,kd(i),'double');
+%                 end
+%                 for i = 1:3
+%                     fwrite(obj.IPout,ki(i),'double');
+%                 end
+%                 %Go K1, K2, K1, K2, K1, K2 from RH14->11->8
+%                 fwrite(obj.IPout,obj.params.k1RH14,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH14,'double');
+%                 fwrite(obj.IPout,obj.params.k1RH11,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH11,'double');
+%                 fwrite(obj.IPout,obj.params.k1RH8,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH8,'double');
                 text = fscanf(obj.IPin,'%s');
                 if(isempty(strfind(text,'GAINSUPDATED')))
                     disp('Gains not updated');
@@ -144,9 +151,11 @@ classdef PC104_Arm3DoF < handle
                 if(nargin == 2 && length(home) == 3)
                     cmd = 7;
                     fwrite(obj.IPout,cmd,'int32');
-                    fwrite(obj.IPout,home(1),'double');
-                    fwrite(obj.IPout,home(2),'double');
-                    fwrite(obj.IPout,home(3),'double');
+                    obj.sendDoubles(home);
+        %                    fwrite(obj.IPout,home,'double');
+%                     fwrite(obj.IPout,home(1),'double');
+%                     fwrite(obj.IPout,home(2),'double');
+%                     fwrite(obj.IPout,home(3),'double');
                     text = fscanf(obj.IPin,'%s');
                     if(isempty(strfind(text,'HOMEUPDATED')))
                         disp('Home not updated')
@@ -231,12 +240,20 @@ classdef PC104_Arm3DoF < handle
                         return
                     end
                     disp('Sending trajectory');
-                    for i = 1:obj.num_pts
-                        if(mod(i,100) == 0)
-                            pause(0.1)
-                        end
-                        fwrite(obj.IPout,obj.traj1(i),'double');
-                    end
+%                     for i = 1:obj.num_pts
+%                         if(mod(i,100) == 0)
+%                             pause(0.1)
+%                         end
+%                         fwrite(obj.IPout,obj.traj1(i),'double');
+%                     end
+                    obj.sendDoubles(obj.traj1);
+        %                    for i = 1:175:obj.num_pts
+        %               if(i+174 < obj.num_pts)
+        %                   fwrite(obj.IPout,obj.traj1(i:i+174),'double');
+        %               else
+        %                   fwrite(obj.IPout,obj.traj1(i:end),'double');
+        %               end
+        %           end
                     text = fscanf(obj.IPin,'%s');
                     if(isempty(strfind(text,'DONETRAJ1')))
                         disp('Did not send traj1');
@@ -244,12 +261,20 @@ classdef PC104_Arm3DoF < handle
                         return
                     end
                     disp('Sent first trajectory');
-                    for i = 1:obj.num_pts
-                        if(mod(i,100) == 0)
-                            pause(0.1)
-                        end
-                        fwrite(obj.IPout,obj.traj2(i),'double');
-                    end
+%                     for i = 1:obj.num_pts
+%                         if(mod(i,100) == 0)
+%                             pause(0.1)
+%                         end
+%                         fwrite(obj.IPout,obj.traj2(i),'double');
+%                     end
+                    obj.sendDoubles(obj.traj2);
+        %                    for i = 1:175:obj.num_pts 
+        %               if(i+174 < obj.num_pts)
+        %                   fwrite(obj.IPout,obj.traj2(i:i+174),'double');
+        %               else
+        %                   fwrite(obj.IPout,obj.traj2(i:end),'double');
+        %               end
+        %           end
                     text = fscanf(obj.IPin,'%s');
                     if(isempty(strfind(text,'DONETRAJ2')))
                         disp('Did not send traj2');
@@ -257,12 +282,20 @@ classdef PC104_Arm3DoF < handle
                         return
                     end
                     disp('Sent second trajectory');
-                    for i = 1:obj.num_pts
-                        if(mod(i,100) == 0)
-                            pause(0.1)
-                        end
-                        fwrite(obj.IPout,obj.traj3(i),'double');
-                    end
+%                     for i = 1:obj.num_pts
+%                         if(mod(i,100) == 0)
+%                             pause(0.1)
+%                         end
+%                         fwrite(obj.IPout,obj.traj3(i),'double');
+%                     end
+                    obj.sendDoubles(obj.traj3);
+        %                    for i = 1:175:obj.num_pts 
+        %               if(i+174 < obj.num_pts)
+        %                   fwrite(obj.IPout,obj.traj3(i:i+174),'double');
+        %               else
+        %                   fwrite(obj.IPout,obj.traj3(i:end),'double');
+        %               end
+        %           end
                     text = fscanf(obj.IPin,'%s');
                     if(isempty(strfind(text,'DONETRAJ')))
                         disp('Did not get all traj?')
@@ -303,6 +336,37 @@ classdef PC104_Arm3DoF < handle
             end
         end
         
+        %Sends an array of doubles
+        function sendDoubles(obj, val)
+            if(obj.connected)
+                for i = 1:175:length(val)
+                    if(i + 175 < length(val))
+                        fwrite(obj.IPout, val(i:i+174),'double');
+                    else
+                        fwrite(obj.IPout, val(i:end),'double');
+                    end
+                    pause(0.001);
+                end
+            end
+        end
+        
+        %Reads an array of doubles
+        function [val, count] = recDoubles(obj, n_pts)
+            val = zeros(1,n_pts);
+            count = 0;
+            if(obj.connected)
+                for i = 1:175:n_pts
+                    if(i + 175 < n_pts)
+                        [val(i:i+174), temp] = fread(obj.IPin,175,'double');
+                    else
+                        [val(i:end), temp] = fread(obj.IPin,length(val(i:end)), ...
+                                           'double');
+                    end
+                    count = count + temp;
+                end
+            end
+        end
+                
         %Get data from a trajectory run (cmd = 3)
         function getTrajData(obj)
             if(obj.connected)
@@ -314,73 +378,31 @@ classdef PC104_Arm3DoF < handle
                     disp(text)
                     return
                 end
-                disp('Receiving data');
-                for i = 1:obj.num_pts
-                    obj.pos1(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.pos2(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.pos3(i) = fread(obj.IPin,1,'double');
-                end
+                disp('Receiving data');   
+                obj.pos1 = obj.recDoubles(obj.num_pts);
+                obj.pos2 = obj.recDoubles(obj.num_pts);
+                obj.pos3 = obj.recDoubles(obj.num_pts);
                 disp('Got encoder vals')
-                for i = 1:obj.num_pts
-                    obj.controlVals1(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.controlVals2(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.controlVals3(i) = fread(obj.IPin,1,'double');
-                end
+                obj.controlVals1 = obj.recDoubles(obj.num_pts);
+                obj.controlVals2 = obj.recDoubles(obj.num_pts);
+                obj.controlVals3 = obj.recDoubles(obj.num_pts);
                 disp('Got control vals')
-                for i = 1:obj.num_pts
-                    obj.camPosX(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.camPosY(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.camPosTh(i) = fread(obj.IPin,1,'double');
-                end
+                obj.camPosX = obj.recDoubles(obj.num_pts);
+                obj.camPosY = obj.recDoubles(obj.num_pts);
+                obj.camPosTh = obj.recDoubles(obj.num_pts);
                 disp('Got camera manipulator positions')
-                for i = 1:obj.num_pts
-                    obj.loopTimes(i) = fread(obj.IPin,1,'double');
-                end  
-                for i = 1:obj.num_pts
-                    obj.objPosX(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.objPosY(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.objPosTh(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.xAccControl(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.yAccControl(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.thAccControl(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.accControl1(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.accControl2(i) = fread(obj.IPin,1,'double');
-                end
-                for i = 1:obj.num_pts
-                    obj.accControl3(i) = fread(obj.IPin,1,'double');
-                end
-                text = fscanf(obj.IPin,'%s');
-                if(isempty(strfind(text,'END')))
-                    disp('Did not get all data?')
-                    disp(text)
-                    return;
-                end
+                obj.loopTimes = obj.recDoubles(obj.num_pts);
+                obj.objPosX = obj.recDoubles(obj.num_pts);
+                obj.objPosY = obj.recDoubles(obj.num_pts);
+                obj.objPosTh = obj.recDoubles(obj.num_pts);
+                disp('Got all camera positions')
+                obj.xAccControl = obj.recDoubles(obj.num_pts);
+                obj.yAccControl = obj.recDoubles(obj.num_pts);
+                obj.thAccControl = obj.recDoubles(obj.num_pts);
+                obj.accControl1 = obj.recDoubles(obj.num_pts);
+                obj.accControl2 = obj.recDoubles(obj.num_pts);
+                obj.accControl3 = obj.recDoubles(obj.num_pts);
+                disp('Got desired accelerations');
                 disp('Got all data, resetting');
                 text = fscanf(obj.IPin,'%s');
                 if(isempty(strfind(text,'RESET')))
@@ -400,12 +422,10 @@ classdef PC104_Arm3DoF < handle
             if(obj.connected)
                 cmd = 8;
                 fwrite(obj.IPout,cmd,'int32');
-                encPos1 = fread(obj.IPin,1,'double');
-                encPos2 = fread(obj.IPin,1,'double');
-                encPos3 = fread(obj.IPin,1,'double');
-                disp(['RH14: ' num2str(encPos1)]);
-                disp(['RH11: ' num2str(encPos2)]);
-                disp(['RH8: ' num2str(encPos3)]);
+                encPos = obj.recDoubles(3);
+                disp(['RH14: ' num2str(encPos(1))]);
+                disp(['RH11: ' num2str(encPos(2))]);
+                disp(['RH8: ' num2str(encPos(3))]);
             else
                 disp('Not connected')
                 return
@@ -414,7 +434,17 @@ classdef PC104_Arm3DoF < handle
     
         %Miscellaneous functions (cmd = 11), not doing anything now
         function misc(obj)
-            disp('No misc function set');
+            if(obj.connected)
+                %Using it to test out new packet stuff
+                cmd = 11;
+                buf = [0.1 0.2 0.3 0.4 0.5];
+                fwrite(obj.IPout,cmd,'int32');
+                fwrite(obj.IPout,buf,'double');
+                while(~obj.IPin.BytesAvailable)
+                end
+                buf = fread(obj.IPin,obj.IPin.BytesAvailable,'double');
+                disp(num2str(buf));
+            end
         end
         
         %Send LQR gains for balancing at a point (cmd = 13)
@@ -433,18 +463,25 @@ classdef PC104_Arm3DoF < handle
                     disp(text)
                     return
                 end
-                for i = 1:3
-                    for j = 1:8
-                        fwrite(obj.IPout,K(i,j),'double');
-                    end
-                end
+                obj.sendDoubles(reshape(K',1,24));
+        %                fwrite(obj.IPout,reshape(K',1,24),'double');
+%                 for i = 1:3
+%                     for j = 1:8
+%                         fwrite(obj.IPout,K(i,j),'double');
+%                     end
+%                 end
                 %Go K1, K2, K1, K2, K1, K2 from RH14->11->8
-                fwrite(obj.IPout,obj.params.k1RH14,'double');
-                fwrite(obj.IPout,obj.params.k2RH14,'double');
-                fwrite(obj.IPout,obj.params.k1RH11,'double');
-                fwrite(obj.IPout,obj.params.k2RH11,'double');
-                fwrite(obj.IPout,obj.params.k1RH8,'double');
-                fwrite(obj.IPout,obj.params.k2RH8,'double');
+                gains = [obj.params.k1RH14 obj.params.k2RH14 ...
+                    obj.params.k1RH11 obj.params.k2RH11 ...
+                    obj.params.k1RH8 obj.params.k2RH8];
+                obj.sendDoubles(gains);
+        %                fwrite(obj.IPout,gains,'double');
+%                 fwrite(obj.IPout,obj.params.k1RH14,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH14,'double');
+%                 fwrite(obj.IPout,obj.params.k1RH11,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH11,'double');
+%                 fwrite(obj.IPout,obj.params.k1RH8,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH8,'double');
                 text = fscanf(obj.IPin,'%s');
                 if(isempty(strfind(text,'LQRUPDATED')))
                     disp('Didnt get LQR gains')
@@ -473,18 +510,25 @@ classdef PC104_Arm3DoF < handle
                     disp(text)
                     return
                 end
-                for i = 1:3
-                    for j = 1:8
-                        fwrite(obj.IPout,K(i,j),'double');
-                    end
-                end
+                obj.sendDoubles(reshape(K',1,24));
+        %                fwrite(obj.IPout,reshape(K',1,24),'double');
+%                 for i = 1:3
+%                     for j = 1:8
+%                         fwrite(obj.IPout,K(i,j),'double');
+%                     end
+%                 end
                 %K1, K2, K1, K2, K1, K2 from RH14->11->8
-                fwrite(obj.IPout,obj.params.k1RH14,'double');
-                fwrite(obj.IPout,obj.params.k2RH14,'double');
-                fwrite(obj.IPout,obj.params.k1RH11,'double');
-                fwrite(obj.IPout,obj.params.k2RH11,'double');
-                fwrite(obj.IPout,obj.params.k1RH8,'double');
-                fwrite(obj.IPout,obj.params.k2RH8,'double');
+                gains = [obj.params.k1RH14 obj.params.k2RH14 ...
+                    obj.params.k1RH11 obj.params.k2RH11 ...
+                    obj.params.k1RH8 obj.params.k2RH8];
+                obj.sendDoubles(gains);
+        %                fwrite(obj.IPout,gains,'double');
+%                 fwrite(obj.IPout,obj.params.k1RH14,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH14,'double');
+%                 fwrite(obj.IPout,obj.params.k1RH11,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH11,'double');
+%                 fwrite(obj.IPout,obj.params.k1RH8,'double');
+%                 fwrite(obj.IPout,obj.params.k2RH8,'double');
                 text = fscanf(obj.IPin,'%s');
                 if(isempty(strfind(text,'LQRUPDATED')))
                     disp('Didnt get LQR gains')
@@ -596,6 +640,7 @@ classdef PC104_Arm3DoF < handle
             title('Control values');
             xlabel('Time (s)'); ylabel('Amps');
             legend('Joint 1','Joint 2','Joint 3');
+            
             subplot(2,1,2);
             plot(obj.t,obj.loopTimes);
             title('Loop times');

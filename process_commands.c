@@ -72,7 +72,7 @@ void process_cmd() {
 	printf("Couldn't read a command\n");
 	break;
     default:
-	printf("Bad command: %d\n", cmd);
+	//printf("Bad command: %d\n", cmd);
 	break;
     }
 
@@ -120,7 +120,7 @@ void procCmd1() {
     desAccel1 = (double *)calloc(num_pts, sizeof(double));
     desAccel2 = (double *)calloc(num_pts, sizeof(double));
     desAccel3 = (double *)calloc(num_pts, sizeof(double));
-    loopTimes = (_uint64 *)calloc(num_pts, sizeof(_uint64));
+    loopTimes = (double *)calloc(num_pts, sizeof(double));
     //Check to make sure allocation went well
     if(traj1 == NULL || traj2 == NULL || traj3 == NULL || \
     		position1 == NULL || position2 == NULL || position3 == NULL ||\
@@ -138,41 +138,21 @@ void procCmd2() {
     int i;
     //Make sure we aren't running
     running = 0;
-    double maxVal = -10.0;
-    double minVal = 0.0;
     //Let PC know we are ready to recieve trajectory
     sendString("SENDDATA\n");
     //Receive joint trajectory
-    for(i = 0; i < num_pts; i++) {
-    	readDouble(&(traj1[i]));
-    	if(traj1[i] > maxVal)
-    		maxVal = traj1[i];
-    	if(traj1[i] < minVal)
-			minVal = traj1[i];
-    }
-    printf("Max traj1: %f\nMin traj1: %f\nFirst traj1: %f\n",maxVal,minVal,traj1[0]);
-    maxVal = -10.0;
-    minVal = 0.0;
+    int doublesRec;
+    doublesRec = getDoublePacket(traj1, num_pts);
+    //printf("Expected %d doubles, got %d doubles\n",num_pts, doublesRec);
+
     sendString("DONETRAJ1\n");
-    for(i = 0; i < num_pts; i++) {
-	readDouble(&(traj2[i]));
-	if(traj2[i] > maxVal)
-		maxVal = traj2[i];
-	if(traj2[i] < minVal)
-		minVal = traj2[i];
-    }
-    printf("Max traj2: %f\nMin traj2: %f\nFirst traj2: %f\n",maxVal,minVal,traj2[0]);
-    maxVal = -10.0;
-    minVal = 0.0;
+    doublesRec = getDoublePacket(traj2, num_pts);
+    //printf("Expected %d doubles, got %d doubles\n",num_pts, doublesRec);
+
     sendString("DONETRAJ2\n");
-    for(i = 0; i < num_pts; i++) {
-	readDouble(&(traj3[i]));
-	if(traj3[i] > maxVal)
-		maxVal = traj3[i];
-	if(traj3[i] < minVal)
-		minVal = traj3[i];
-    }
-    printf("Max traj3: %f\nMin traj3: %f\n",maxVal,minVal,traj3[0]);
+    doublesRec = getDoublePacket(traj3, num_pts);
+    //printf("Expected %d doubles, got %d doubles\n",num_pts, doublesRec);
+
     //sendString("DONETRAJ3\n");
     sendString("DONETRAJ\n");
 }
@@ -188,83 +168,46 @@ void procCmd3() {
     //control_mode = NO_CONTROL;
     //Reset global index
     globalIndex = -1;
-    //Send data back (sendData();
+    //Send data back
     sendString("START\n");
-     for(i = 0; i < num_pts; i++) {
- 	//		sprintf(outBuf, "%f\n", position1[i]);
- 	//		sendString(outBuf);
- 	sendDouble(position1 + i);
-     }
-     for(i = 0; i < num_pts; i++) {
- 	//		sprintf(outBuf, "%f\n", position2[i]);
- 	//		sendString(outBuf);
- 	sendDouble(position2 + i);
-     }
-     for(i = 0; i < num_pts; i++) {
- 	//		sprintf(outBuf, "%f\n", position3[i]);
- 	//		sendString(outBuf);
- 	sendDouble(position3 + i);
-     }
- //    sendString("POSEND\n");
-     for(i = 0; i < num_pts; i++) {
- 	//		sprintf(outBuf, "%f\n", controlVals1[i]);
- 	//		sendString(outBuf);
- 	sendDouble(controlVals1 + i);
-     }
-     for(i = 0; i < num_pts; i++) {
- 	//		sprintf(outBuf, "%f\n", controlVals2[i]);
- 	//		sendString(outBuf);
- 	sendDouble(controlVals2 + i);
-     }
-     for(i = 0; i < num_pts; i++) {
- 	//		sprintf(outBuf, "%f\n", controlVals3[i]);
- 	//		sendString(outBuf);
- 	sendDouble(controlVals3 + i);
-     }
-     for(i = 0; i < num_pts; i++) {
-     	sendDouble(cameraPosX + i);
-     }
-     for(i = 0; i < num_pts; i++) {
-     	sendDouble(cameraPosY + i);
-     }
-     for(i = 0; i < num_pts; i++) {
- 	sendDouble(cameraPosTh + i);
-     }
-    double tempD;
-    for(i = 0; i < num_pts; i++) {
- 	//		sprintf(outBuf, "%ull\n", loopTimes + i);
- 	//		sendString(outBuf);
- 	tempD = ((double)(loopTimes[i]))/1000000.0;
- 	sendDouble(&tempD);
-    }
-   for(i = 0; i < num_pts; i++) {
-       sendDouble(objectX + i);
-   }
-   for(i = 0; i < num_pts; i++) {
-       sendDouble(objectY + i);
-   }
-   for(i = 0; i < num_pts; i++) {
-       sendDouble(objectTh + i);
-   }
-   for(i = 0; i < num_pts; i++) {
-       sendDouble(desXAccel + i);
-   }
-   for(i = 0; i < num_pts; i++) {
-       sendDouble(desYAccel + i);
-   }
-   for(i = 0; i < num_pts; i++) {
-       sendDouble(desThAccel + i);
-   }
-   for(i = 0; i < num_pts; i++) {
-	   sendDouble(desAccel1 + i);
-   }
-   for(i = 0; i < num_pts; i++) {
-	   sendDouble(desAccel2 + i);
-   }
-   for(i = 0; i < num_pts; i++) {
-	   sendDouble(desAccel3 + i);
-   }
-    sendString("END\n");
+    sendDoublePacket(position1, num_pts);
+    delay(1);
+    sendDoublePacket(position2, num_pts);
+    delay(1);
+    sendDoublePacket(position3, num_pts);
+    delay(1);
+    sendDoublePacket(controlVals1, num_pts);
+    delay(1);
+    sendDoublePacket(controlVals2, num_pts);
+    delay(1);
+    sendDoublePacket(controlVals3, num_pts);
+    delay(1);
+    sendDoublePacket(cameraPosX, num_pts);
+    delay(1);
+    sendDoublePacket(cameraPosY, num_pts);
+    delay(1);
+    sendDoublePacket(cameraPosTh, num_pts);
+    delay(1);
+    sendDoublePacket(loopTimes, num_pts);
+    delay(1);
+   sendDoublePacket(objectX, num_pts);
+   delay(1);
+   sendDoublePacket(objectY, num_pts);
+   delay(1);
+   sendDoublePacket(objectTh, num_pts);
+   delay(1);
+   sendDoublePacket(desXAccel, num_pts);
+   delay(1);
+   sendDoublePacket(desYAccel, num_pts);
+   delay(1);
+   sendDoublePacket(desThAccel, num_pts);
+   delay(1);
+   sendDoublePacket(desAccel1, num_pts);
+   delay(1);
+   sendDoublePacket(desAccel2, num_pts);
+   delay(1);
+   sendDoublePacket(desAccel3, num_pts);
+   delay(1);
     simpleReset();
 }
 
@@ -315,9 +258,10 @@ void procCmd5() {
 //    control_mode = FF_PID_TRAJ_MANIP;
     //BALANCE THAT ISH
     control_mode = ONE_POINT_ROLL_BALANCE;
-    home1 = traj1[num_pts - 1];
-    home2 = traj2[num_pts - 1];
-    home3 = traj3[num_pts - 1];
+    //control_mode = NEW_ONE_POINT_ROLL_BALANCE;
+ //   home1 = traj1[num_pts - 1];
+ //   home2 = traj2[num_pts - 1];
+   // home3 = traj3[num_pts - 1];
     //Right now, want to get estimate of gravity!
     //control_mode = NO_CONTROL;
 }
@@ -330,12 +274,20 @@ void procCmd6() {
     sendString("CONTROL\n");
     //Get control gains from PC
     //goes proportional (1/2/3), derivative (1/2/3), then integral (1/2/3)
-    readDouble(&kp1); readDouble(&kp2); readDouble(&kp3);
-    readDouble(&kd1); readDouble(&kd2); readDouble(&kd3);
-    readDouble(&ki1); readDouble(&ki2); readDouble(&ki3);
-    readDouble(&INNER_K1_14); readDouble(&INNER_K2_14);
-    readDouble(&INNER_K1_11); readDouble(&INNER_K2_11);
-    readDouble(&INNER_K1_8); readDouble(&INNER_K2_8);
+    double gains[15];
+    getDoublePacket(gains,15);
+    kp1 = gains[0]; kp2 = gains[1]; kp3 = gains[2];
+    kd1 = gains[3]; kd2 = gains[4]; kd3 = gains[5];
+    ki1 = gains[6]; ki2 = gains[7]; ki3 = gains[8];
+    INNER_K1_14 = gains[9]; INNER_K2_14 = gains[10];
+    INNER_K1_11 = gains[11]; INNER_K2_11 = gains[12];
+    INNER_K1_8  = gains[13]; INNER_K2_8  = gains[14];
+    /* readDouble(&kp1); readDouble(&kp2); readDouble(&kp3); */
+    /* readDouble(&kd1); readDouble(&kd2); readDouble(&kd3); */
+    /* readDouble(&ki1); readDouble(&ki2); readDouble(&ki3); */
+    /* readDouble(&INNER_K1_14); readDouble(&INNER_K2_14); */
+    /* readDouble(&INNER_K1_11); readDouble(&INNER_K2_11); */
+    /* readDouble(&INNER_K1_8); readDouble(&INNER_K2_8); */
 //    readDouble(&kp1curr); readDouble(&kp2curr); readDouble(&kp3curr);
 //    readDouble(&kd1curr); readDouble(&kd2curr); readDouble(&kd3curr);
     //Tell PC we are done with control gains
@@ -347,9 +299,14 @@ void procCmd7() {
     //Make sure we aren't running
     running = 0;
     //read the home positions
-    readDouble(&home1);
-    readDouble(&home2);
-    readDouble(&home3);
+    double homes[3];
+    getDoublePacket(homes,3);
+    home1 = homes[0];
+    home2 = homes[1];
+    home3 = homes[2];
+    /* readDouble(&home1); */
+    /* readDouble(&home2); */
+    /* readDouble(&home3); */
     //Get object home positions
     /* readDouble(&objHomeX); */
     /* readDouble(&objHomeY); */
@@ -367,13 +324,12 @@ void procCmd8() {
     //	sendString(buf);
     //	sprintf(buf, "%f\n", current_position_RH8(iobase, 0));
     //	sendString(buf);
-    double temp;
-    temp = current_position_RH14(iobase, 0);
-    sendDouble(&temp);
-    temp = current_position_RH11(iobase, 0);
-    sendDouble(&temp);
-    temp = current_position_RH8(iobase, 0);
-    sendDouble(&temp);
+    double temp[3];
+    
+    temp[0] = current_position_RH14(iobase, 0);
+    temp[1] = current_position_RH11(iobase, 0);
+    temp[2] = current_position_RH8(iobase, 0);
+    sendDoublePacket(temp,3);
 }
 
 //Emergency stop and "reset"
@@ -436,23 +392,30 @@ void procCmd11() {
     /* 	tempInt = (areaGlobal[i]); */
     /* 	sendInt(&tempInt); */
     /* } */
-  sendString("JOINTANGLESCAM\n");
-  double jointAngles[2];
-  jointAngles[0] = calculateJointOneCamera();//atan2(yGlobal[0] - yGlobal[1], xGlobal[0] - xGlobal[1]);
-  jointAngles[1] = calculateJointTwoCamera();//atan2(yGlobal[1] - yGlobal[2], xGlobal[1] - xGlobal[2]) - jointAngles[0];
-  sendDouble(&(jointAngles[0]));
-  sendDouble(&(jointAngles[1]));
-  int i;
-  double temp;
-  for(i = 0; i < 3; i++) {
-//      temp = (double)xGlobal[i];
-//      sendDouble(&temp);
-//      temp = (double)yGlobal[i];
-//      sendDouble(&temp);
-	  sendDouble(&(xGlobal[i]));
-	  sendDouble(&(yGlobal[i]));
-      sendInt(&(areaGlobal[i]));
-  }
+/*   sendString("JOINTANGLESCAM\n"); */
+/*   double jointAngles[2]; */
+/*   jointAngles[0] = calculateJointOneCamera();//atan2(yGlobal[0] - yGlobal[1], xGlobal[0] - xGlobal[1]); */
+/*   jointAngles[1] = calculateJointTwoCamera();//atan2(yGlobal[1] - yGlobal[2], xGlobal[1] - xGlobal[2]) - jointAngles[0]; */
+/*   sendDouble(&(jointAngles[0])); */
+/*   sendDouble(&(jointAngles[1])); */
+/*   int i; */
+/*   double temp; */
+/*   for(i = 0; i < 3; i++) { */
+/* //      temp = (double)xGlobal[i]; */
+/* //      sendDouble(&temp); */
+/* //      temp = (double)yGlobal[i]; */
+/* //      sendDouble(&temp); */
+/* 	  sendDouble(&(xGlobal[i])); */
+/* 	  sendDouble(&(yGlobal[i])); */
+/*       sendInt(&(areaGlobal[i])); */
+/*   } */
+
+
+    //Test receiving a packet
+    double buf[5];
+    int doubles_rec = getDoublePacket(buf, 5);
+    printf("Received %d doubles, %f %f %f %f %f\n",doubles_rec, buf[0], buf[1], buf[2], buf[3], buf[4]);
+    sendDoublePacket(buf, doubles_rec);
 }
 
 //Contact point on manipulator in terms of arc length
@@ -496,12 +459,12 @@ void procCmd13() {
     //Get control gains from PC
     //goes proportional (1/2/3), derivative (1/2/3), then integral (1/2/3)
     int i;
-    for(i = 0; i < 24; i++) {
-    	readDouble(&(K_lqr[i]));
-    }
-    readDouble(&INNER_K1_14); readDouble(&INNER_K2_14);
-    readDouble(&INNER_K1_11); readDouble(&INNER_K2_11);
-    readDouble(&INNER_K1_8); readDouble(&INNER_K2_8);
+    double gains[6];
+    int bytesRec = getDoublePacket(K_lqr,24);
+    bytesRec = getDoublePacket(gains,6);
+    INNER_K1_14 = gains[0]; INNER_K2_14 = gains[1];
+    INNER_K1_11 = gains[2]; INNER_K2_11 = gains[3];
+    INNER_K1_8  = gains[4]; INNER_K2_8  = gains[5];
     sendString("LQRUPDATED\n");
 }
 

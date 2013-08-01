@@ -94,3 +94,22 @@ void readDouble(double * val) {
 		*val = -1;
 	}
 }
+
+int getDoublePacket(double *buf, int num_doubles) {
+    int i;
+    int bytesRec = 0;
+    const int max_doubles_per_packet = 175;
+    if(validSession_rec) {
+	for(i = 0; i < (num_doubles - 1); i += max_doubles_per_packet) {
+	    if(i+max_doubles_per_packet < num_doubles)
+		bytesRec += recv(mSessionSocket_rec, buf+i, max_doubles_per_packet*sizeof(double), 0);
+	    else
+		bytesRec += recv(mSessionSocket_rec, buf+i, (num_doubles - i)*sizeof(double), 0);
+	    
+	}
+	return bytesRec/sizeof(double);
+    } else {
+	*buf = -1;
+	return -1;
+    }
+}

@@ -26,6 +26,7 @@ void FifoQInit(int objSize, int len);
 void AddSignal_send(int ch, double *val);
 void Process_send();
 void sendString(const char *stringToSend);
+void sendDoublePacket(const double *val, int len);
 
 int mSocket_send;
 int mSessionSocket_send;

@@ -86,8 +86,8 @@ double current_position_RH8(uintptr_t iobase, int reset){
 
     last = curr;
     if(reset) {
-//	total_count = (int)((thObjectGlobal-calculateJointTwoCamera() - calculateJointOneCamera())/M_PI*51200.0);
-	total_count = (int)((-calculateJointTwoCamera() - calculateJointOneCamera())/M_PI*51200.0);
+	total_count = (int)((thObjectGlobal-calculateJointTwoCamera() - calculateJointOneCamera())/M_PI*51200.0);
+//	total_count = (int)((-calculateJointTwoCamera() - calculateJointOneCamera())/M_PI*51200.0);
 //		total_count = 0;
     }
     //total_count = read_encoder_1(iobase);
@@ -245,11 +245,12 @@ void simpleReset() {
     longestLoopTime = 0;
     //Tell PC we reset
     sendString("RESET\n");
+    printf("Reset\n");
 }
 
 //Calculate control for all three motors
 void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *reqCurrentRH8){
-	static int printTimer = 0;
+	static int resetTimer = 0;
     //Initialize variables
     *reqCurrentRH14 = 0.0; *reqCurrentRH11 = 0.0; *reqCurrentRH8 = 0.0;
     //Desired accelerations
@@ -523,6 +524,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	return;
 	break;
     }
+    //if(!reset_inner_loop && resetTimer <= 500) {
     if(!reset_inner_loop) {
     	//Update virtual trajectory and calculate errors
     	virtualRH14 += virtualVelRH14*DT + th1dd/2.0*DT*DT;
@@ -539,6 +541,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
     	virtualVelRH8 += th3dd*DT;
     	error_inner_d_RH8 = virtualVelRH8 - velRH8global;
     	error_inner_RH8 = virtualRH8 - thRH8global;
+    	//resetTimer++;
     } else {
     	virtualRH8 = thRH8global;
     	virtualRH11 = thRH11global;
@@ -550,6 +553,7 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
     	error_inner_d_RH14 = 0.0; error_inner_RH14 = 0.0;
     	error_inner_d_RH11 = 0.0; error_inner_RH11 = 0.0;
     	error_inner_d_RH8 = 0.0; error_inner_RH8 = 0.0;
+    	resetTimer = 0;
     }
 
     robotTorques(&torqueDes1, &torqueDes2, &torqueDes3,		 \

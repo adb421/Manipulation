@@ -25,7 +25,7 @@
 </storageModule>
 <storageModule moduleId="org.eclipse.cdt.core.language.mapping"/>
 <storageModule moduleId="cdtBuildSystem" version="4.0.0">
-<configuration artifactName="Arm3DoF_PC104" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" description="" errorParsers="com.qnx.tools.ide.qde.core.IntelCErrorParser;com.qnx.tools.ide.qde.core.QdeExtraMakeErrorParser;org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.core.VCErrorParser" id="com.qnx.qcc.configuration.exe.release.1198092792" name="x86/Release" parent="com.qnx.qcc.configuration.exe.release">
+<configuration artifactName="Arm3DoF_PC104" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.release" description="" errorParsers="com.qnx.tools.ide.qde.core.IntelCErrorParser;com.qnx.tools.ide.qde.core.QdeExtraMakeErrorParser;org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.core.VCErrorParser" id="com.qnx.qcc.configuration.exe.release.1198092792" name="x86/Release" parent="com.qnx.qcc.configuration.exe.release">
 <folderInfo id="com.qnx.qcc.configuration.exe.release.1198092792." name="/" resourcePath="">
 <toolChain errorParsers="" id="com.qnx.qcc.toolChain.exe.release.904568126" name="QNX QCC" superClass="com.qnx.qcc.toolChain.exe.release">
 <targetPlatform archList="all" binaryParser="com.qnx.tools.ide.qde.core.QDEBynaryParser" id="com.qnx.qcc.targetPlatform.1448559145" osList="all" superClass="com.qnx.qcc.targetPlatform"/>
@@ -54,7 +54,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="CameraReadTest.h|CameraReadTest.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="Arm3DoF_Control_Inner_Loop_Test.c~|Arm3DoF_Control_Inner_Loop_Test.c|CameraReadTest.h|CameraReadTest.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>
@@ -403,7 +403,7 @@
 </storageModule>
 <storageModule moduleId="org.eclipse.cdt.core.language.mapping"/>
 <storageModule moduleId="cdtBuildSystem" version="4.0.0">
-<configuration artifactName="Arm3DoF_PC104" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug,org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" description="" errorParsers="com.qnx.tools.ide.qde.core.IntelCErrorParser;com.qnx.tools.ide.qde.core.QdeExtraMakeErrorParser;org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.core.VCErrorParser" id="com.qnx.qcc.configuration.exe.debug.195490995" name="x86/Debug" parent="com.qnx.qcc.configuration.exe.debug">
+<configuration artifactName="Arm3DoF_PC104" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe,org.eclipse.cdt.build.core.buildType=org.eclipse.cdt.build.core.buildType.debug" description="" errorParsers="com.qnx.tools.ide.qde.core.IntelCErrorParser;com.qnx.tools.ide.qde.core.QdeExtraMakeErrorParser;org.eclipse.cdt.core.MakeErrorParser;org.eclipse.cdt.core.GCCErrorParser;org.eclipse.cdt.core.GASErrorParser;org.eclipse.cdt.core.GLDErrorParser;org.eclipse.cdt.core.VCErrorParser" id="com.qnx.qcc.configuration.exe.debug.195490995" name="x86/Debug" parent="com.qnx.qcc.configuration.exe.debug">
 <folderInfo id="com.qnx.qcc.configuration.exe.debug.195490995." name="/" resourcePath="">
 <toolChain errorParsers="" id="com.qnx.qcc.toolChain.exe.debug.1488199369" name="QNX QCC" superClass="com.qnx.qcc.toolChain.exe.debug">
 <targetPlatform archList="all" binaryParser="com.qnx.tools.ide.qde.core.QDEBynaryParser" id="com.qnx.qcc.targetPlatform.825058536" osList="all" superClass="com.qnx.qcc.targetPlatform"/>
@@ -435,7 +435,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="CameraReadTest.h|CameraReadTest.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="Arm3DoF_Control_Inner_Loop_Test.c~|Arm3DoF_Control_Inner_Loop_Test.c|CameraReadTest.h|CameraReadTest.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>

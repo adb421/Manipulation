@@ -21,7 +21,8 @@
 #define DYNAMIC_GRASP_POS  7  //Go to a specified object pos, assume dyn grasp
 #define FF_PID_TRAJ_MANIP  8  //Follow a trajectory, trajs are manipulator pos (x,y,th)
 #define PID_MANIP_POS      9  //Go to a specified manipulator pos aka home position
-#define ONE_POINT_ROLL_BALANCE 10 // Balance one point rolling, stabilize a ponit
+#define ONE_POINT_ROLL_BALANCE 10 // Balance one point rolling, stabilize a point
+#define NEW_ONE_POINT_ROLL_BALANCE 11 //Balance one point rolling, LQR is on manipulator config instead of object
 
 #define LOW_PRIORITY	30
 #define MEDIUM_PRIORITY 35
@@ -37,9 +38,28 @@
 #define LOOP_TIME_NSEC (1000000) //1ms
 #define DT			   (0.001) //time in seconds
 
+//Object parameters
+//#define SQUARE_OBJECT
+#define RECT_OBJECT
+#ifdef SQUARE_OBJECT
+#define lo (0.05) //10cm, divide by 2, in m
+#define wo (0.05)
+#define mo (0.06) //60 g
+#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
+#define OBJECT_ANGLE (M_PI/4.0) //atan(wo/lo)
+#endif
+#ifdef RECT_OBJECT
+#define wo (.026) //5.2cm, divide by 2, 2.6
+#define lo (.0425)  //8.5cm, divide by 2, 4.25
+#define mo (0.088) // 51 g
+#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
+#define lc (0.04956)
+#define OBJECT_ANGLE (0.5490) //atan(wo/lo)
+#endif
+
 //LQR Point Roll Balance points
 #define X_MANIP_ROLL_GOAL (-0.2)
-#define Y_MANIP_ROLL_GOAL (-0.1 - .0255 - 0.0498) //params.wm & params.lc
+#define Y_MANIP_ROLL_GOAL (-0.1) //params.wm & params.lc ignore them for now
 #define X_OBJ_ROLL_GOAL (-0.2)
 #define Y_OBJ_ROLL_GOAL (-0.1)
 #define TH_OBJ_ROLL_GOAL (M_PI/2.0 - OBJECT_ANGLE)
@@ -104,9 +124,13 @@
 #define J1		(0.0216)
 #define J2		(0.043)
 #define J3		(0.0037)
+//Static friction model seems to be causing problems
 #define MUS1	(1.2556/2.0)
 #define MUS2	(1.5221/2.0)
-#define MUS3	(0.504/2.0)
+#define MUS3	(0.504/10.0)
+//#define MUS1 0.0
+//#define MUS2 0.0
+//#define MUS3 0.0
 #define MUD1	(0.035*30.0/M_PI)
 #define MUD2	(0.017*30.0/M_PI)
 #define MUD3	(0.0097*30.0/M_PI)
@@ -137,25 +161,6 @@
 #define wm (0.0255) // 5.2cm, divide by 2, in m
 #define m3 (0.1146 + M_MOUNT) // 114.6g
 #define I3 (((m3-M_MOUNT)*(4.0*lm*lm + 4.0*wm*wm))/12.0) + I_MOUNT // m(h^2 + w^2)/ 12
-#endif
-
-//Object parameters
-//#define SQUARE_OBJECT
-#define RECT_OBJECT
-#ifdef SQUARE_OBJECT
-#define lo (0.05) //10cm, divide by 2, in m
-#define wo (0.05)
-#define mo (0.06) //60 g
-#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
-#define OBJECT_ANGLE (M_PI/4.0) //atan(wo/lo)
-#endif
-#ifdef RECT_OBJECT
-#define wo (.026) //5.2cm, divide by 2, 2.6
-#define lo (.0425)  //8.5cm, divide by 2, 4.25
-#define mo (0.088) // 51 g
-#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
-#define lc (0.04956)
-#define OBJECT_ANGLE (0.5490) //atan(wo/lo)
 #endif
 
 //Home PI controls

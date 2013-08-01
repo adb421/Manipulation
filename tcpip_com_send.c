@@ -246,3 +246,18 @@ void sendInt(const int *val) {
 		send(mSessionSocket_send, (const void *)val, sizeof(int), 0);
 	}
 }
+
+void sendDoublePacket(const double *buf, int num_doubles) {
+    int i;
+    const int max_doubles_per_packet = 175;
+    if(validSession_send) {
+	//for(i = 0; i=i+max_doubles_per_packet; i < num_doubles - 1) {
+    for(i = 0; i < (num_doubles - 1); i+=max_doubles_per_packet) {
+	    if(i+max_doubles_per_packet < num_doubles)
+		send(mSessionSocket_send, buf+i, max_doubles_per_packet*sizeof(double), 0);
+	    else
+		send(mSessionSocket_send, buf+i, (num_doubles - i)*sizeof(double), 0);
+	    
+	}
+    }
+}

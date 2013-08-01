@@ -171,9 +171,9 @@ void * control_loop_thread(void *arg) {
 	yObjectGlobal = 0.5*(yGlobal[3] + yGlobal[4]);
 	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]);
 	//Is this right?
-	if(thObjectGlobal - thObject_prev >= 3 && cameraFrameCount < 12)
+	if(((thObjectGlobal - thObject_prev) >= 3.5) && cameraFrameCount < 12)
 	    thObjectGlobal -= 2.0*M_PI;
-	else if(thObject_prev - thObjectGlobal >= 3 && cameraFrameCount < 12)
+	else if(((thObject_prev - thObjectGlobal) >= 3.5) && cameraFrameCount < 12)
 	    thObjectGlobal += 2.0*M_PI;
 
 	normDistObject = sqrt(pow(xObjectGlobal - xManip_global,2) + pow(yObjectGlobal - yManip_global,2));
@@ -276,12 +276,14 @@ void * control_loop_thread(void *arg) {
 
 
     //Check post loop times to see how long loop takes, if we are doing a traj. Otherwise don't care.
+    double tempTime = 0.0;
      ClockTime(CLOCK_REALTIME, NULL, &postLoop);
-    if((globalIndex < num_pts && globalIndex >= 0) && running) {
+     if(globalIndex < num_pts && globalIndex >= 0) {
       //How much time in nanoseconds has elapsed?
       nsecElapsed = postLoop - preLoop;
       //Is it the largest such elapsed time
-      loopTimes[globalIndex] = nsecElapsed;
+      tempTime = ((double) nsecElapsed);
+      loopTimes[globalIndex] = tempTime/1000000.0;
       if(nsecElapsed > longestLoopTime)
 	longestLoopTime = nsecElapsed;
     }
