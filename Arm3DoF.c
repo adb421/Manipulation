@@ -192,9 +192,9 @@ void set_control_RH14(uintptr_t iobase, double desCurrent) {
 	desCurrent = -1.0*desCurrent;
 	uint16_t DACVal;
     if(desCurrent >= (MAX_CURRENT_RH14 - MAX_CURRENT_RH14/32767.5)) {
-    	DACVal = 65535;
+    	DACVal = 65530;
     } else if((-1.0*desCurrent) >= (MAX_CURRENT_RH14*1.0 - MAX_CURRENT_RH14/32767.5)) {
-    	DACVal = 0;
+    	DACVal = 5;
     } else {
     	DACVal = (uint16_t)((desCurrent/(MAX_CURRENT_RH14*1.0) + 1.0)*32767.5);
     }
@@ -215,6 +215,7 @@ void simpleReset() {
     free(traj1);
     free(traj2);
     free(traj3);
+    free(traj4);
     free(position1);
     free(position2);
     free(position3);
@@ -227,6 +228,39 @@ void simpleReset() {
     free(cameraPosTh);
     free(cameraPos1);
     free(cameraPos2);
+    free(desXAccel);
+    free(desYAccel);
+    free(desThAccel);
+    free(desAccel1);
+    free(desAccel2);
+    free(desAccel3);
+    free(uffX);
+    free(uffY);
+    free(uffTh);
+    free(KT11);
+    free(KT12);
+    free(KT13);
+    free(KT14);
+    free(KT15);
+    free(KT16);
+    free(KT17);
+    free(KT18);
+    free(KT21);
+    free(KT22);
+    free(KT23);
+    free(KT24);
+    free(KT25);
+    free(KT26);
+    free(KT27);
+    free(KT28);
+    free(KT31);
+    free(KT32);
+    free(KT33);
+    free(KT34);
+    free(KT35);
+    free(KT36);
+    free(KT37);
+    free(KT38);
     //Ensure control mode is 0 and no control
     control_mode = NO_CONTROL;
     running = 0;
@@ -294,6 +328,14 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 //	th2Prev = thRH11global;
 //	th3Prev = thRH8global;
     reset_inner_loop = 1;
+    if(globalIndex >= 0 && globalIndex < num_pts && running) {
+    	desXAccel[globalIndex] = 0.0;
+		desYAccel[globalIndex] = 0.0;
+		desThAccel[globalIndex] = 0.0;
+		desAccel1[globalIndex] = 0.0;
+		desAccel2[globalIndex] = 0.0;
+		desAccel3[globalIndex] = 0.0;
+    }
 	return;
 	break;
     case GO_HOME_JOINTS:
@@ -520,6 +562,39 @@ void calculateControl(double *reqCurrentRH14, double *reqCurrentRH11, double *re
 	    desAccel3[globalIndex] = th3dd;
 	}
 	break;
+    case ONE_POINT_ROLL_TRAJ:
+    if(globalIndex >= 0 && globalIndex < num_pts && running) {
+    	//LQR errors
+    	errorThm = traj1[globalIndex] - thManip_global;
+    	errorThmDot = calculateTrajVel(traj1) - velThManip_global;
+    	errorXo = traj2[globalIndex] - xObjectGlobal;
+    	errorXoDot = calculateTrajVel(traj2) - velXObjectGlobal;
+    	errorYo = traj3[globalIndex] - yObjectGlobal;
+    	errorYoDot = calculateTrajVel(traj3) - velYObjectGlobal;
+    	errorTho = traj4[globalIndex] - thObjectGlobal;
+    	errorThoDot = calculateTrajVel(traj4) - velThObjectGlobal;
+    	xmdd = KT11[globalIndex]*errorThm + KT12[globalIndex]*errorThmDot + KT13[globalIndex]*errorXo + \
+    	       KT14[globalIndex]*errorXoDot + KT15[globalIndex]*errorYo + KT16[globalIndex]*errorYoDot + \
+    	       KT17[globalIndex]*errorTho + KT18[globalIndex]*errorThoDot + uffX[globalIndex];
+    	ymdd = KT21[globalIndex]*errorThm + KT22[globalIndex]*errorThmDot + KT23[globalIndex]*errorXo + \
+    			KT24[globalIndex]*errorXoDot + KT25[globalIndex]*errorYo + KT26[globalIndex]*errorYoDot + \
+    			KT27[globalIndex]*errorTho + KT28[globalIndex]*errorThoDot + uffY[globalIndex];
+    	thmdd = KT31[globalIndex]*errorThm + KT32[globalIndex]*errorThmDot + KT33[globalIndex]*errorXo + \
+    			KT34[globalIndex]*errorXoDot + KT35[globalIndex]*errorYo + KT36[globalIndex]*errorYoDot + \
+    			KT37[globalIndex]*errorTho + KT38[globalIndex]*errorThoDot + uffTh[globalIndex];
+    	if(ymdd < -0.8*g) {
+    			//printf("ClippingControl");
+    		ymdd = -0.8*g;
+    	}
+    	calculateJointAccelFromManipAccel(xmdd,ymdd,thmdd,&th1dd,&th2dd,&th3dd);
+    	desXAccel[globalIndex] = xmdd;
+    	desYAccel[globalIndex] = ymdd;
+    	desThAccel[globalIndex] = thmdd;
+    	desAccel1[globalIndex] = th1dd;
+    	desAccel2[globalIndex] = th2dd;
+    	desAccel3[globalIndex] = th3dd;
+    }
+    break;
     default:
 	return;
 	break;
@@ -585,6 +660,13 @@ double calculateTrajVel3(void) {
     else {
 	return (traj3[globalIndex+1] - traj3[globalIndex-1])/(2.0*DT);
     }
+}
+
+double calculateTrajVel(double *traj) {
+	if(globalIndex < 1 || globalIndex >= num_pts - 1) return 0.0;
+	else {
+		return (traj3[globalIndex+1] - traj3[globalIndex-1])/(2.0*DT);
+	}
 }
 
 double calculateTrajAccel1(void) {
@@ -699,7 +781,7 @@ void robotTorques(double *torqueDes1, double *torqueDes2, double *torqueDes3, \
 
     //th3
     if(control_mode == PID_MANIP_POS || control_mode == DYNAMIC_GRASP_POS || control_mode == GO_HOME_JOINTS \
-    		|| control_mode == ONE_POINT_ROLL_BALANCE)
+    		|| control_mode == ONE_POINT_ROLL_BALANCE || control_mode == ONE_POINT_ROLL_TRAJ)
     	staticFric = 0.0;
     else
     	staticFric = MUS3;
@@ -755,7 +837,7 @@ void calculateJointAccelFromManipAccel(double xmdd, double ymdd, double thmdd, \
 }
 
 int limitsExceeded() {
-    if(fabs(thRH11global) > 2.6) { //May want to add in velocities
+    if(fabs(thRH11global) > 3.0) { //May want to add in velocities
 	printf("Joint 2 angle limit exceeded\n");
 	return 1;
     }

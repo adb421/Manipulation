@@ -81,14 +81,25 @@ params.objHomeX = -0.2;
 params.objHomeY = -0.15;
 params.objHomeTh = 0.0;
 
+% %Plastic rectangular object
+% params.lo = 0.0445;
+% params.wo = 0.0285;
+% params.mo = 0.088;
+% Wooden rectangular object
+params.lo = 0.051;
+params.wo = 0.045;
+params.mo = 0.07545;
+params.mu = 1.5;
+params.Jo = 1/3*params.mo*(params.lo^2 + params.wo^2);
+
 params.wm = 0.0255;
 params.g = 9.81*sin(0.4);
-params.lo = 0.0425;
-params.wo = 0.026;
 params.lm = 0.09;
+params.s1 = params.lm;
 params.lc = sqrt(params.lo^2+params.wo^2);
-params.mo = 0.088;
 params.objAngle = atan(params.wo/params.lo);
+params.mm = 0.0276+0.1146;
+params.Jm = 0.0276*(0.205^2 + 0.026^2)/12 + 0.1146*(0.18^2 + 0.052^2)/12;
 
 A = [0 1 0 0 0 0 0 0;...
      0 0 0 0 0 0 0 0;...
@@ -114,15 +125,49 @@ params.Q = eye(8);
 params.R = eye(3);
 %Q should be diag, elements:
 %1 -thm, 2-thmd, 3-xo,4-xod,5-yo,6-yod,7-tho,8-thod
-% params.Q(1,1) = 2000; %thm
+%These lead to "limit cycle": 5000/750/500/1
+% params.Q(1,1) = 5000; %thm
 % params.Q(3,3) = 750; %xo
-% params.Q(5,5) = 250; %yo
+% params.Q(5,5) = 500; %yo
 % params.Q(7,7) = 1; %tho
-params.Q(1,1) = 5000; %thm
-params.Q(3,3) = 750; %xo
-params.Q(5,5) = 500; %yo
+%8/7, these are good, x is drifting again, maybe drop down tho costs?
+% params.Q(1,1) = 10000; %thm %Pretty good, 8/15
+% params.Q(2,2) = 100; %thmd
+% params.Q(3,3) = 4000; %xo
+% params.Q(4,4) = 2000; %xod
+% params.Q(5,5) = 2000; %yo
+% params.Q(6,6) = 500; %yod
+% params.Q(7,7) = 1; %tho
+% params.Q(8,8) = 1; %thod
+% %Start messing with trajectory stuff for Trajectory, 8/16
+% params.Q(1,1) = 100000; 
+% params.Q(2,2) = 1; %thmd
+% params.Q(3,3) = 8000; %xo
+% params.Q(4,4) = 2000; %xod
+% params.Q(5,5) = 2000; %yo
+% params.Q(6,6) = 500; %yod
+% params.Q(7,7) = 1; %tho
+% params.Q(8,8) = 1; %thod
+%Screwing with 1-pt roll "hold" again.
+params.Q(1,1) = 10000; %thm %Pretty good, 8/15
+params.Q(2,2) = 100; %thmd
+params.Q(3,3) = 4000; %xo
+params.Q(4,4) = 2000; %xod
+params.Q(5,5) = 3000; %yo
+params.Q(6,6) = 500; %yod
 params.Q(7,7) = 1; %tho
-     
+params.Q(8,8) = 10; %thod
+% params.Q(1,1) = 100000; %thm 
+% params.Q(2,2) = 1000; %thmd
+% params.Q(3,3) = 5500; %xo
+% params.Q(4,4) = 1500;
+% % params.Q(4,4) = 5000; %xod
+% params.Q(5,5) = 1000; %yo
+% params.Q(6,6) = 1000; %yod
+% params.Q(7,7) = 1; %tho
+% params.Q(8,8) = 1; %thod
+
+
 % Try applying LQR to all states
       %xm xmd ym ymd thm thmd tho thod
 Anew = [0 1 0 0 0 0 0 0; ...

@@ -1,5 +1,6 @@
 %%
 clear classes
+disp('Use trajectory script instead')
 dt = 0.001;
 params = ParametersFunction();
 
@@ -17,7 +18,7 @@ t = 0:dt:T;
 num_pts = length(t);
 
 %Send manipulator home position
-home = [-0.2 0.0 0.0];
+home = [-0.2 -.1-params.lc 0.0];
 pc104.sendHomePos(home);
 
 disp('unpause to go home')
@@ -26,8 +27,10 @@ pc104.goHome();
 
 %Now send traj...
 pc104.allocateTraj(num_pts);
-trajs = zeros(size(t));
-pc104.sendTraj(trajs,trajs,trajs,t);
+traj1 = zeros(size(t));
+traj2 = -0.2*ones(size(t));
+traj3 = -0.1*ones(size(t));
+pc104.sendTraj(traj1,traj2,traj3,t);
 
 disp('unpause for traj go')
 pause

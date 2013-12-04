@@ -68,6 +68,10 @@ void process_cmd() {
     //Kill program
     procCmd14();
     break;
+    case 15:
+    //LQR Trajectory
+    procCmd15();
+    break;
     case -1:
 	printf("Couldn't read a command\n");
 	break;
@@ -102,6 +106,7 @@ void procCmd1() {
     traj1 = (double *)calloc(num_pts, sizeof(double));
     traj2 = (double *)calloc(num_pts, sizeof(double));
     traj3 = (double *)calloc(num_pts, sizeof(double));
+    traj4 = (double *)calloc(num_pts, sizeof(double));
     position1 = (double *)calloc(num_pts, sizeof(double));
     position2 = (double *)calloc(num_pts, sizeof(double));
     position3 = (double *)calloc(num_pts, sizeof(double));
@@ -120,6 +125,33 @@ void procCmd1() {
     desAccel1 = (double *)calloc(num_pts, sizeof(double));
     desAccel2 = (double *)calloc(num_pts, sizeof(double));
     desAccel3 = (double *)calloc(num_pts, sizeof(double));
+    uffX = (double *)calloc(num_pts, sizeof(double));
+    uffY = (double *)calloc(num_pts, sizeof(double));
+    uffTh = (double *)calloc(num_pts, sizeof(double));
+    KT11 = (double *)calloc(num_pts, sizeof(double));
+    KT12 = (double *)calloc(num_pts, sizeof(double));
+    KT13 = (double *)calloc(num_pts, sizeof(double));
+    KT14 = (double *)calloc(num_pts, sizeof(double));
+    KT15 = (double *)calloc(num_pts, sizeof(double));
+    KT16 = (double *)calloc(num_pts, sizeof(double));
+    KT17 = (double *)calloc(num_pts, sizeof(double));
+    KT18 = (double *)calloc(num_pts, sizeof(double));
+    KT21 = (double *)calloc(num_pts, sizeof(double));
+    KT22 = (double *)calloc(num_pts, sizeof(double));
+    KT23 = (double *)calloc(num_pts, sizeof(double));
+    KT24 = (double *)calloc(num_pts, sizeof(double));
+    KT25 = (double *)calloc(num_pts, sizeof(double));
+    KT26 = (double *)calloc(num_pts, sizeof(double));
+    KT27 = (double *)calloc(num_pts, sizeof(double));
+    KT28 = (double *)calloc(num_pts, sizeof(double));
+    KT31 = (double *)calloc(num_pts, sizeof(double));
+    KT32 = (double *)calloc(num_pts, sizeof(double));
+    KT33 = (double *)calloc(num_pts, sizeof(double));
+    KT34 = (double *)calloc(num_pts, sizeof(double));
+    KT35 = (double *)calloc(num_pts, sizeof(double));
+    KT36 = (double *)calloc(num_pts, sizeof(double));
+    KT37 = (double *)calloc(num_pts, sizeof(double));
+    KT38 = (double *)calloc(num_pts, sizeof(double));
     loopTimes = (double *)calloc(num_pts, sizeof(double));
     //Check to make sure allocation went well
     if(traj1 == NULL || traj2 == NULL || traj3 == NULL || \
@@ -255,10 +287,11 @@ void procCmd5() {
  //   control_mode = DYNAMIC_GRASP_TRAJ;
     //Follow a manipulator trajectory
     //Go back to this!!!!!!!!
-//    control_mode = FF_PID_TRAJ_MANIP;
+    //control_mode = FF_PID_TRAJ_MANIP;
     //BALANCE THAT ISH
-    control_mode = ONE_POINT_ROLL_BALANCE;
+    //control_mode = ONE_POINT_ROLL_BALANCE; // Use TRAJ for now
     //control_mode = NEW_ONE_POINT_ROLL_BALANCE;
+    control_mode = ONE_POINT_ROLL_TRAJ;
  //   home1 = traj1[num_pts - 1];
  //   home2 = traj2[num_pts - 1];
    // home3 = traj3[num_pts - 1];
@@ -412,10 +445,15 @@ void procCmd11() {
 
 
     //Test receiving a packet
-    double buf[5];
-    int doubles_rec = getDoublePacket(buf, 5);
-    printf("Received %d doubles, %f %f %f %f %f\n",doubles_rec, buf[0], buf[1], buf[2], buf[3], buf[4]);
-    sendDoublePacket(buf, doubles_rec);
+    /* double buf[5]; */
+    /* int doubles_rec = getDoublePacket(buf, 5); */
+    /* printf("Received %d doubles, %f %f %f %f %f\n",doubles_rec, buf[0], buf[1], buf[2], buf[3], buf[4]); */
+    /* sendDoublePacket(buf, doubles_rec); */
+    double buf[3];
+    buf[0] = xManip_global;
+    buf[1] = yManip_global;
+    buf[2] = thManip_global;
+    sendDoublePacket(buf,3);
 }
 
 //Contact point on manipulator in terms of arc length
@@ -472,4 +510,87 @@ void procCmd14() {
 	//Tell PC
 	sendString("KILL\n");
 	end_program = 1;
+}
+
+//Receive LQR trajectory tracking gains
+//Receive joint trajectory from PC
+void procCmd15() {
+    //Make sure we aren't running
+    running = 0;
+    //Let PC know we are ready to recieve trajectory
+    sendString("SENDLQR\n");
+    //Receive LQR feedback gains trajectory
+    int doublesRec;
+    //Get the four trajectories
+    doublesRec = getDoublePacket(traj1, num_pts);
+    sendString("DONETRAJ1\n");
+    doublesRec = getDoublePacket(traj2, num_pts);
+    sendString("DONETRAJ2\n");
+    doublesRec = getDoublePacket(traj3, num_pts);
+    sendString("DONETRAJ3\n");
+    doublesRec = getDoublePacket(traj4, num_pts);
+    sendString("DONETRAJ4\n");
+    //Get feedforward terms
+    doublesRec = getDoublePacket(uffX, num_pts);
+    sendString("DONEFFX\n");
+    doublesRec = getDoublePacket(uffY, num_pts);
+    sendString("DONEFFY\n");
+    doublesRec = getDoublePacket(uffTh, num_pts);
+    sendString("DONEFFTH\n");
+    doublesRec = getDoublePacket(KT11, num_pts);
+    sendString("DONEK11\n");
+    doublesRec = getDoublePacket(KT12, num_pts);
+    sendString("DONEK12\n");
+    doublesRec = getDoublePacket(KT13, num_pts);
+    sendString("DONEK13\n");
+    doublesRec = getDoublePacket(KT14, num_pts);
+    sendString("DONEK14\n");
+    doublesRec = getDoublePacket(KT15, num_pts);
+    sendString("DONEK15\n");
+    doublesRec = getDoublePacket(KT16, num_pts);
+    sendString("DONEK16\n");
+    doublesRec = getDoublePacket(KT17, num_pts);
+    sendString("DONEK17\n");
+    doublesRec = getDoublePacket(KT18, num_pts);
+    sendString("DONEK18\n");
+    doublesRec = getDoublePacket(KT21, num_pts);
+    sendString("DONEK21\n");
+    doublesRec = getDoublePacket(KT22, num_pts);
+    sendString("DONEK22\n");
+    doublesRec = getDoublePacket(KT23, num_pts);
+    sendString("DONEK23\n");
+    doublesRec = getDoublePacket(KT24, num_pts);
+    sendString("DONEK24\n");
+    doublesRec = getDoublePacket(KT25, num_pts);
+    sendString("DONEK25\n");
+    doublesRec = getDoublePacket(KT26, num_pts);
+    sendString("DONEK26\n");
+    doublesRec = getDoublePacket(KT27, num_pts);
+    sendString("DONEK27\n");
+    doublesRec = getDoublePacket(KT28, num_pts);
+    sendString("DONEK28\n");
+    doublesRec = getDoublePacket(KT31, num_pts);
+    sendString("DONEK31\n");
+    doublesRec = getDoublePacket(KT32, num_pts);
+    sendString("DONEK32\n");
+    doublesRec = getDoublePacket(KT33, num_pts);
+    sendString("DONEK33\n");
+    doublesRec = getDoublePacket(KT34, num_pts);
+    sendString("DONEK34\n");
+    doublesRec = getDoublePacket(KT35, num_pts);
+    sendString("DONEK35\n");
+    doublesRec = getDoublePacket(KT36, num_pts);
+    sendString("DONEK36\n");
+    doublesRec = getDoublePacket(KT37, num_pts);
+    sendString("DONEK37\n");
+    doublesRec = getDoublePacket(KT38, num_pts);
+    sendString("DONEK38\n");
+
+    INNER_K1_14 = INN_K1_14;
+    INNER_K2_14 = INN_K2_14;
+    INNER_K1_11 = INN_K1_11;
+    INNER_K2_11 = INN_K2_11;
+    INNER_K1_8 = INN_K1_8;
+    INNER_K2_8 = INN_K2_8;
+    printf("Got everything for LQR traj\n");
 }

@@ -23,6 +23,7 @@
 #define PID_MANIP_POS      9  //Go to a specified manipulator pos aka home position
 #define ONE_POINT_ROLL_BALANCE 10 // Balance one point rolling, stabilize a point
 #define NEW_ONE_POINT_ROLL_BALANCE 11 //Balance one point rolling, LQR is on manipulator config instead of object
+#define ONE_POINT_ROLL_TRAJ 12 //Balance one point rolling, LQR trajectory tracking
 
 #define LOW_PRIORITY	30
 #define MEDIUM_PRIORITY 35
@@ -40,21 +41,37 @@
 
 //Object parameters
 //#define SQUARE_OBJECT
-#define RECT_OBJECT
+//#define RECT_OBJECT
+#define WOODEN_OBJECT
 #ifdef SQUARE_OBJECT
 #define lo (0.05) //10cm, divide by 2, in m
 #define wo (0.05)
 #define mo (0.06) //60 g
 #define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
 #define OBJECT_ANGLE (M_PI/4.0) //atan(wo/lo)
+#define OBJ_ANGLE_OFFSET (0)
 #endif
 #ifdef RECT_OBJECT
-#define wo (.026) //5.2cm, divide by 2, 2.6
-#define lo (.0425)  //8.5cm, divide by 2, 4.25
-#define mo (0.088) // 51 g
+//#define wo (.026) //5.2cm, divide by 2, 2.6
+//#define lo (.0425)  //8.5cm, divide by 2, 4.25
+#define wo (0.0285)
+#define lo (0.0445)
+#define mo (0.088) // 88 g
 #define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
-#define lc (0.04956)
-#define OBJECT_ANGLE (0.5490) //atan(wo/lo)
+//#define lc (0.04956)
+//#define OBJECT_ANGLE (0.5490) //atan(wo/lo)
+#define lc (.05284)
+#define OBJECT_ANGLE (0.5696)
+#define OBJ_ANGLE_OFFSET (0.031) //This offset comes from the fact that the IR markers aren't put on perfectly... oops
+#endif
+#ifdef WOODEN_OBJECT
+#define wo (0.045) //9cm, divide by 2, 4.5
+#define lo (0.051)      //10.2cm, divide by 2, 5.1
+#define mo (0.07545)
+#define Io ((mo*(4.0*lo*lo + 4.0*wo*wo))/12.0) // m(h^2 + w^2)/12
+#define lc (0.068)
+#define OBJECT_ANGLE (0.723)
+#define OBJ_ANGLE_OFFSET (0.0035)
 #endif
 
 //LQR Point Roll Balance points
@@ -64,59 +81,6 @@
 #define Y_OBJ_ROLL_GOAL (-0.1)
 #define TH_OBJ_ROLL_GOAL (M_PI/2.0 - OBJECT_ANGLE)
 
-//LQR gains, do it this way for now IM LAZY
-//#define K11 (0.0083)
-//#define K12 (0.0221)
-//#define K13 (-9.997)
-//#define K14 (-16.5494)
-//#define K15 (0.0)
-//#define K16 (0.0)
-//#define K17 (47.5807)
-//#define K18 (10.5380)
-//
-//#define K21 (0.0)
-//#define K22 (0.0)
-//#define K23 (0.0)
-//#define K24 (0.0)
-//#define K25 (10.0)
-//#define K26 (10.9545)
-//#define K27 (0.0)
-//#define K28 (0.0)
-//
-//#define K31 (0.3161)
-//#define K32 (0.8557)
-//#define K33 (0.2613)
-//#define K34 (0.4415)
-//#define K35 (0.0)
-//#define K36 (0.0)
-//#define K37 (1.2101)
-//#define K38 (-0.2687)
-//Try this:
-#define K11 (0.191)
-#define K12 (0.0621)
-#define K13 (-0.9998)
-#define K14 (-2.0466)
-#define K15 (0.0)
-#define K16 (0.0)
-#define K17 (9.9146)
-#define K18 (1.4487)
-#define K21 (0.0)
-#define K22 (0.0)
-#define K23 (0.0)
-#define K24 (0.0)
-#define K25 (1.0)
-#define K26 (1.7321)
-#define K27 (0.0)
-#define K28 (0.0)
-#define K31 (0.9998)
-#define K32 (1.7312)
-#define K33 (0.0191)
-#define K34 (0.0624)
-#define K35 (0.0)
-#define K36 (0.0)
-#define K37 (-0.2239)
-#define K38 (0.0336)
-
 //From motor data sheet
 #define KM1		(2.92)
 #define KM2		(4.91)
@@ -125,9 +89,9 @@
 #define J2		(0.043)
 #define J3		(0.0037)
 //Static friction model seems to be causing problems
-#define MUS1	(1.2556/2.0)
-#define MUS2	(1.5221/2.0)
-#define MUS3	(0.504/10.0)
+#define MUS1	(1.2556/4.0)
+#define MUS2	(1.5221/4.0)
+#define MUS3	(0.504/5.0)
 //#define MUS1 0.0
 //#define MUS2 0.0
 //#define MUS3 0.0
@@ -192,6 +156,7 @@ double calculateTrajVel3();
 double calculateTrajAccel1();
 double calculateTrajAccel2();
 double calculateTrajAccel3();
+double calculateTrajVel(double *traj);
 //double feedForward1();
 //double feedForward2();
 //double feedForward3();
@@ -233,7 +198,7 @@ double K_lqr[24];
 double errorInt1, errorInt2, errorInt3;
 
 double *position1, *position2, *position3;
-double *traj1, *traj2, *traj3;
+double *traj1, *traj2, *traj3, *traj4;
 double *controlVals1, *controlVals2, *controlVals3;
 double *desXAccel, *desYAccel, *desThAccel;
 double *objectX, *objectY, *objectTh;
@@ -241,6 +206,11 @@ _uint64 *loopTimes;
 
 double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2, *cameraPosTh;
 double *desAccel1, *desAccel2, *desAccel3;
+
+double *uffX, *uffY, *uffTh;
+double *KT11, *KT12, *KT13, *KT14, *KT15, *KT16, *KT17, *KT18;
+double *KT21, *KT22, *KT23, *KT24, *KT25, *KT26, *KT27, *KT28;
+double *KT31, *KT32, *KT33, *KT34, *KT35, *KT36, *KT37, *KT38;
 
 double contactPoint1, contactPoint2;
 
@@ -255,6 +225,12 @@ double velXObjectGlobal, velYObjectGlobal, velThObjectGlobal;
 double xManipCam_global, yManipCam_global;
 
 //These will eventually be #defs
+#define INN_K1_14 (0.00005)
+#define INN_K2_14 (0.55)
+#define INN_K1_11 (0.05)
+#define INN_K2_11 (0.0625)
+#define INN_K1_8  (0.00000005)
+#define INN_K2_8  (0.025)
 double INNER_K1_14, INNER_K2_14;
 double INNER_K1_11, INNER_K2_11;
 double INNER_K1_8, INNER_K2_8;

@@ -165,7 +165,7 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   int nObjects = (size_payload - 24)/20;
   int i;
   newCameraData = 0;//Don't update camera marker info while doing this
-  if(nObjects > DES_MARKERS && control_mode == ONE_POINT_ROLL_BALANCE) {
+  if(nObjects > DES_MARKERS && control_mode == ONE_POINT_ROLL_TRAJ) {
 	  printf("%d markers\n",nObjects); //Commented because this slows shit down
 	  home1 = xManip_global;
 	  home2 = yManip_global;
