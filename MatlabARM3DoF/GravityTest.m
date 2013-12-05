@@ -26,3 +26,4 @@ figure;
 plot(t,posY);
 figure;
 plot(t,posTh);
+pc104.killProgram();
