@@ -1,6 +1,6 @@
 #include "includes.h"
 
-_uint64 preLoop;
+_uint64 visionPreLoop;
 
 FILE *filep;
 
@@ -80,7 +80,7 @@ void * vision_loop_thread(void *arg) {
   //Structure: pcap_loop(pcap_t *p, int cnt, pcap_handler callback, u_char *user);
   printf("Start receive loop\n");
   //	fprintf(filep,"X Y Roundness Timing\n");
-  ClockTime(CLOCK_REALTIME, NULL, &preLoop);
+  ClockTime(CLOCK_REALTIME, NULL, &visionPreLoop);
   //pcap_loop(handle, NUM_SAMPLES + 1, got_packet, (u_char *) filep);
   pcap_loop(handle, 0, got_Packet, (u_char *) handle);
   fclose(filep);
@@ -117,7 +117,7 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   ClockTime(CLOCK_REALTIME, NULL, &postLoop);
   /* if(visionCount < NUM_SAMPLES) { */
   /* 	//put it in ms, do it for 10k why not */
-  /* 	cameraTiming[visionCount] = ((float)(postLoop-preLoop))/1000000.0; */
+  /* 	cameraTiming[visionCount] = ((float)(postLoop-visionPreLoop))/1000000.0; */
   /* 	visionCount++; */
   /* } */
 
@@ -128,12 +128,13 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   int areaInt;
 
   //Got a packet!
-  /* if(visionCount == 0) { */
-  /* 	//printf("Got first packet!\n"); */
-  /* 	ClockTime(CLOCK_REALTIME, NULL, &preLoop); */
-  /* 	visionCount++; */
-  /* 	return; */
-  /* } */
+   if(visionCount == 0) {
+   	printf("Got first packet!\n");
+   	ClockTime(CLOCK_REALTIME, NULL, &visionPreLoop);
+   	prevCameraTimeStamp = visionPreLoop;
+   	visionCount++;
+   	return;
+   }
 
   //Cool typecasting!
   //Ethernet header takes up the first section of the packet
@@ -208,6 +209,8 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
     }
     //Calculate object world coordinates from marker location
     if(nObjects == DES_MARKERS) {
+    	prevCameraTimeStamp = cameraTimeStamp;
+    ClockTime(CLOCK_REALTIME, NULL, &cameraTimeStamp);//Get the time when the data came in, we'll use this for velocity calculations
 	newCameraData = 1;
     } else {
     //No new camera data, didn't get enough markers
@@ -216,7 +219,7 @@ void got_Packet(u_char *args, const struct pcap_pkthdr *header, const u_char *pa
   } else {
    // printf("%d Markers\n",nObjects);
   }
-  ClockTime(CLOCK_REALTIME, NULL, &preLoop);
+  ClockTime(CLOCK_REALTIME, NULL, &visionPreLoop);
 }
 
 void sortByArea(double *x, double *y, int *area, int nObjects) {

@@ -54,7 +54,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="Arm3DoF_Control_Inner_Loop_Test.c~|Arm3DoF_Control_Inner_Loop_Test.c|CameraReadTest.h|CameraReadTest.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="MatlabARM3DoF|Literature|ConstantForceSims|CHOMP|MotionPlanning|Arm3DoF_Control_Inner_Loop_Test.c~|Arm3DoF_Control_Inner_Loop_Test.c|CameraReadTest.h|CameraReadTest.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>
@@ -435,7 +435,7 @@
 </toolChain>
 </folderInfo>
 <sourceEntries>
-<entry excluding="Arm3DoF_Control_Inner_Loop_Test.c~|Arm3DoF_Control_Inner_Loop_Test.c|CameraReadTest.h|CameraReadTest.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
+<entry excluding="MatlabARM3DoF|Literature|ConstantForceSims|CHOMP|MotionPlanning|Arm3DoF_Control_Inner_Loop_Test.c~|Arm3DoF_Control_Inner_Loop_Test.c|CameraReadTest.h|CameraReadTest.c" flags="VALUE_WORKSPACE_PATH|RESOLVED" kind="sourcePath" name=""/>
 </sourceEntries>
 </configuration>
 </storageModule>

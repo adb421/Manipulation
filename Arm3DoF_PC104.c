@@ -86,6 +86,8 @@ void * control_loop_thread(void *arg) {
   controlLoopTimerSpec.it_interval.tv_nsec = LOOP_TIME_NSEC;
   //start the timer
   timer_settime(controlLoopTimer,0,&controlLoopTimerSpec, NULL);
+  int timePassedCount = 0;
+  double timePassedTotal = 0.0;
 
   //timer structure pointer to check times
   _uint64 preLoop = 0;
@@ -106,7 +108,7 @@ void * control_loop_thread(void *arg) {
   double diffX, diffY, normAngle, normDistObject;
 
   //Keep track of how many cycles its been since we got camera data
-  int cameraFrameCount = 0;
+//  int cameraFrameCount = 0; //Not using this anymore
   //Used for timing. Initialize preLoop.
   ClockTime(CLOCK_REALTIME, NULL, &preLoop);
 
@@ -156,7 +158,6 @@ void * control_loop_thread(void *arg) {
     	if(limitsExceeded())
     		control_mode = NO_CONTROL;
     }
-    cameraFrameCount++;
     if(newCameraData) {
 	//Calculate object positions
 	xManipCam_global = xGlobal[2];
@@ -170,10 +171,19 @@ void * control_loop_thread(void *arg) {
 	xObjectGlobal = 0.5*(xGlobal[3] + xGlobal[4]);
 	yObjectGlobal = 0.5*(yGlobal[3] + yGlobal[4]);
 	thObjectGlobal = atan2(yGlobal[4] - yGlobal[3], xGlobal[4] - xGlobal[3]) + OBJ_ANGLE_OFFSET;
+	//How long has it been since last new camera data?
+	double timePassed = (double)((cameraTimeStamp - prevCameraTimeStamp)/1000000000.0);
+//	timePassedCount++;
+//	timePassedTotal += timePassed;
+//	if(timePassedCount == 1000) {
+//		printf("Time passed avg: %f\n", timePassedTotal/1000.0);
+//		timePassedCount = 0;
+//		timePassedTotal = 0.0;
+//	}
 	//Is this right?
-	if(((thObjectGlobal - thObject_prev) >= 3.5) && cameraFrameCount < 12)
+	if(((thObjectGlobal - thObject_prev) >= 3.5) && timePassed < 12*DT)
 	    thObjectGlobal -= 2.0*M_PI;
-	else if(((thObject_prev - thObjectGlobal) >= 3.5) && cameraFrameCount < 12)
+	else if(((thObject_prev - thObjectGlobal) >= 3.5) && timePassed < 12*DT)
 	    thObjectGlobal += 2.0*M_PI;
 
 	normDistObject = sqrt(pow(xObjectGlobal - xManip_global,2) + pow(yObjectGlobal - yManip_global,2));
@@ -183,27 +193,33 @@ void * control_loop_thread(void *arg) {
 		printf("X: %f, Y: %f, Th: %f\n", xObjectGlobal, yObjectGlobal, thObjectGlobal);
 	}
 
+//	printf("Time between camera stamps: %f\n",timePassed);
 	/* arcLengthContactPoints(); */
 	velXObject_prev = velXObjectGlobal;
 	velYObject_prev = velYObjectGlobal;
 	velThObject_prev = velThObjectGlobal;
 	//Figure out how long its been since we got camera data, should always be 4, but maybe not!
-	velXObjectGlobal = (xObjectGlobal - xObject_prev)/(cameraFrameCount*DT)*ALPHA_FILTER_CAM + \
+	velXObjectGlobal = (xObjectGlobal - xObject_prev)/(timePassed)*ALPHA_FILTER_CAM + \
 	    (1.0-ALPHA_FILTER_CAM)*velXObject_prev;
-	velYObjectGlobal = (yObjectGlobal - yObject_prev)/(cameraFrameCount*DT)*ALPHA_FILTER_CAM + \
+	velYObjectGlobal = (yObjectGlobal - yObject_prev)/(timePassed)*ALPHA_FILTER_CAM + \
 	    (1.0-ALPHA_FILTER_CAM)*velYObject_prev;
-	velThObjectGlobal = (thObjectGlobal - thObject_prev)/(cameraFrameCount*DT)*ALPHA_FILTER_CAM + \
+	velThObjectGlobal = (thObjectGlobal - thObject_prev)/(timePassed)*ALPHA_FILTER_CAM + \
 	    (1.0-ALPHA_FILTER_CAM)*velThObject_prev;
 	xObject_prev = xObjectGlobal;
 	yObject_prev = yObjectGlobal;
 	thObject_prev = thObjectGlobal;
 	newCameraData = 0;
-	cameraFrameCount = 0;
+//	cameraFrameCount = 0;
     } else {
 	//estimate new pos based on velocity
-	xObjectGlobal += velXObjectGlobal*DT;
-	yObjectGlobal += velYObjectGlobal*DT;
-	thObjectGlobal += velThObjectGlobal*DT;
+    	double timePassed = (double)((cameraTimeStamp - prevCameraTimeStamp)/1000000000.0);
+    	xObjectGlobal = xObject_prev + velXObjectGlobal*timePassed;
+    	yObjectGlobal = yObject_prev + velYObjectGlobal*timePassed;
+    	thObjectGlobal = thObject_prev + velThObjectGlobal*timePassed;
+//	xObjectGlobal += velXObjectGlobal*DT;
+//	yObjectGlobal += velYObjectGlobal*DT;
+//	thObjectGlobal += velThObjectGlobal*DT;
+    	//Don't do anything for now
     }
 
     if((globalIndex < num_pts && globalIndex >= 0) && running) {

@@ -19,11 +19,25 @@ pc104.getTrajData();
 posX = pc104.objPosX;
 posY = pc104.objPosY;
 posTh = pc104.objPosTh;
+j = 1;
 t = 0:0.001:29.999;
+posXFixed(j) = posX(1); posYFixed(j) = posY(1);
+posThFixed(j) = posTh(1); tFixed(j) = t(1);
+j = j+1;
+for i = 2:length(posY)
+    if(posY(i) ~= posY(i-1))
+        posXFixed(j) = posX(i);
+        posYFixed(j) = posY(i);
+        posThFixed(j) = posTh(i);
+        tFixed(j) = t(i);
+        j = j+1;
+    end
+end
+
 figure;
-plot(t,posX);
+plot(posXFixed);
 figure;
-plot(t,posY);
+plot(posYFixed);
 figure;
-plot(t,posTh);
+plot(posThFixed);
 pc104.killProgram();

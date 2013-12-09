@@ -93,7 +93,7 @@ params.mu = 1.5;
 params.Jo = 1/3*params.mo*(params.lo^2 + params.wo^2);
 
 params.wm = 0.0255;
-params.g = 9.81*sin(0.4);
+params.g = 9.81*sin(0.405);
 params.lm = 0.09;
 params.s1 = params.lm;
 params.lc = sqrt(params.lo^2+params.wo^2);

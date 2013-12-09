@@ -83,6 +83,8 @@ double xGlobal[DES_MARKERS];
 double yGlobal[DES_MARKERS];
 int areaGlobal[DES_MARKERS];
 int newCameraData;
+_uint64 cameraTimeStamp;
+_uint64 prevCameraTimeStamp;
 int visionCount;
 
 

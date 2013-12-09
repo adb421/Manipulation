@@ -30,7 +30,7 @@
 #define HIGH_PRIORITY	40
 
 //Horizontal is 0
-#define TABLE_ANGLE		 (0.4) //Table angle is approx 22 degrees right now
+#define TABLE_ANGLE		 (0.405) //Table angle is approx 23 degrees right now
 
 #define MAX_CURRENT_RH14 (5.4) //Amps
 #define MAX_CURRENT_RH11 (2.1) //Amps
@@ -206,6 +206,7 @@ _uint64 *loopTimes;
 
 double *cameraPosX, *cameraPosY, *cameraPos1, *cameraPos2, *cameraPosTh;
 double *desAccel1, *desAccel2, *desAccel3;
+
 
 double *uffX, *uffY, *uffTh;
 double *KT11, *KT12, *KT13, *KT14, *KT15, *KT16, *KT17, *KT18;
