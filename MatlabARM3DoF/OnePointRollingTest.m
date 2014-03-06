@@ -30,7 +30,10 @@ pc104.allocateTraj(num_pts);
 traj1 = zeros(size(t));
 traj2 = -0.2*ones(size(t));
 traj3 = -0.1*ones(size(t));
-pc104.sendTraj(traj1,traj2,traj3,t);
+traj4 = (pi/2 - params.objAngle)*ones(1,num_pts);
+ud = zeros(size(t));
+% pc104.sendTraj(traj1,traj2,traj3,t);
+pc104.LQRTrajSend(traj1,traj2,traj3,traj4,ud,ud,ud,t);
 
 disp('unpause for traj go')
 pause
