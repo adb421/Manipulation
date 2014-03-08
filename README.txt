@@ -38,7 +38,7 @@ The PC104 code has a bunch of functions the process_commands.* files which provi
 
 
 pc104.allocateTraj(numPts); %cmd = 1
-This function is extremely important, if must be done before any trajectory sending functions. This function tells the PC104 how large the arrays need to be so they can be allocated. numPts is the length of the trajectory, which should be the same for all the different vectors.
+This function is extremely important, if must be done before any trajectory sending functions. This function tells the PC104 how large the arrays need to be so they can be allocated. numPts is the length of the trajectory, which should be the same for all the different vectors. Note that num_pts is optional if pc104.num_pts is already set.
 
 
 
@@ -118,10 +118,6 @@ This function is called after getting the trajectory data and plots it. The plot
 
 
 
-
-
-
-
 K = pc104.LQRTrajGains(traj1, traj2, traj3, traj4, uffx, uffy, uffth) 
 Calculates the finite-time LQR feedback gain matrix as a function of time for the LQRTrajSend function.
 
@@ -130,6 +126,39 @@ Calculates the finite-time LQR feedback gain matrix as a function of time for th
 pc104.sendDoubles(val), pc104.recDoubles(n_pts) should not be used by the end user and are lower-level calls to send data back and forth between the PC104. DO NOT EDIT THESE UNLESS YOU KNOW WHAT YOU ARE DOING. Messing with them could break a lot of code. They handle low-level sending and receiving of arrays of doubles.
 
 
+
+PC104_Arm3DoF Class Fields:
+port_in: port used for receiving TCP/IP
+port_out: port used for sending TCP/IP
+dt: Control loop timestep, almost always 0.001s
+IPin: IP to receive TCP/IP from
+IPout: IP to send TCP/IP to
+params: the params struct initialized from ParametersFunction()
+connected: a 1 if the QNX pc104 is connected, 0 else
+num_pts: The number of points in the trajectory, determines the length of all vectors
+traj1/2/3/4: arrays containing the desired trajectories. Could be in cartesian or joint space, for object or manipulator.
+pos1/2/3: Joint positions for each motor/joint. 1/2/3 refers to joints 1/2/3 and motors RH14/RH11/RH8
+controlVals1/2/3: The desired currents in Amps sent to the Junus motor controller.
+camPosX/Y/Th: Position of the end effector of the manipulator as seen from the camera.
+loopTimes: A vector telling us how long each loop took. Should all be much less than 0.001s to make sure we get accurate loop timing.
+objPosX/Y/Th: Position of the object center of mass as seen by the camera
+t: vector of times for the trajectories, gives a time scaling for the indices.
+x/y/thAccControl: Desired accelerations of the end effector of the manipulator. We put this as our control for the higher-level controllers and assume we can control to this acceleration. In reality, we can't but we get close.
+accControl1/2/3: Desired accelerations of joints 1/2/3 (motors RH14/11/8) which are calculated on the PC104 essentially using inverse dynamics.
+k(1/2)RH(14/11/8): The "inner loop" control values for the pc104. This was used to improve acceleration control. The main idea is to integrate forward the desired accelerations into a position signal and apply PD control to the output of the higher level controller. This idea came from Ji-Chul and did improve acceleration control but its still not perfect. Every once in awhile the integrated position signal needs to be reset to account for integration error/drift.
+tcam: a vector of times that map indices for camera vectors to real times. This needs to be different than t because the camera operates at 250Hz instead of 1kHz like the control loop.
+fixedCamX/Y: Fixed camera arrays for the manipulator (note that manipulator Th can't be determined by the camera as it would need two markers). By fixed, we mean that "duplicate" values that are written at 1kHz and removed, and only "new" values written at 250Hz are kept.
+fixedObjX/Y/Th: Same as fixedCamX/Y but for the object and also including Th since the object has two markers to track orientation.
+
+
 ************************************************************************
 TEST SCRIPTS
 ************************************************************************
+
+
+All test scripts can be found in the Manipulation/Experiment_Files/ directory along with the PC104_Arm3DoF.m matlab class file.
+
+GravityTest.m
+This script was used with the NO_CONTROL (0) mode to measure data from the cameras to calculate gravity. I would start this, then throw the block and let it fall, pulling all the data corresponding to parabolic motion and fit those to quadratics and use the quadratic term to calculate gravity (twice gravity to be precise). Then I would average it over all the parabolic motions in the 30s period and use that average. This corresponded to a table angle of 0.4 radians.
+
+

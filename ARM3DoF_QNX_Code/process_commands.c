@@ -98,9 +98,7 @@ void procCmd1() {
 	printf("Need at least 1 point for trajectories\n");
 	return;
     }
-//    char buf[100];
-    //	sprintf(buf, "%d\n",num_pts);
-    //	sendString(buf);
+
     sendInt(&num_pts);
     printf("num_pts: %d\n",num_pts);
     traj1 = (double *)calloc(num_pts, sizeof(double));
@@ -154,12 +152,8 @@ void procCmd1() {
     KT38 = (double *)calloc(num_pts, sizeof(double));
     loopTimes = (double *)calloc(num_pts, sizeof(double));
     //Check to make sure allocation went well
-    if(traj1 == NULL || traj2 == NULL || traj3 == NULL || \
-    		position1 == NULL || position2 == NULL || position3 == NULL ||\
-    		controlVals1 == NULL || controlVals2 == NULL || controlVals3 == NULL ||\
-    		objectX == NULL || objectY == NULL || objectTh == NULL ||\
-    		cameraPosX == NULL || cameraPosY == NULL || cameraPosTh == NULL || \
-    		loopTimes == NULL)
+    //loopTimes is last thing allocated so if it wasn't allocated, we had a problem
+    if(loopTimes == NULL)
     	sendString("MEMFAIL\n");
     else
     	sendString("MEMWIN\n");
@@ -240,7 +234,7 @@ void procCmd3() {
    delay(1);
    sendDoublePacket(desAccel3, num_pts);
    delay(1);
-    simpleReset();
+   simpleReset();
 }
 
 //Go to home position

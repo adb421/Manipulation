@@ -14,7 +14,6 @@ classdef PC104_Arm3DoF < handle
         connected;
         num_pts;
         traj1; traj2; traj3; traj4;
-        checkTraj1; checkTraj2; checkTraj3;
         pos1; pos2; pos3;
         controlVals1; controlVals2; controlVals3;
         camPosX; camPosY; camPosTh;
@@ -199,14 +198,16 @@ classdef PC104_Arm3DoF < handle
                 end
                 cmd = 1;
                 fwrite(obj.IPout,cmd,'int32');
+                %Confirm PC104 got command
                 text = fscanf(obj.IPin,'%s');
                 if(isempty(strfind(text,'ALLOCATE')))
-                    disp('Did not get command?')
+                    disp('Did not get allocate command')
                     disp(text)
                     return
                 end
                 fwrite(obj.IPout,obj.num_pts,'int32');
                 text = fscanf(obj.IPin,'%s');
+                %Confirm allocation successful
                 if(~isempty(strfind(text,'MEMFAIL')))
                     disp('Memory not allocated');
                     disp(text)

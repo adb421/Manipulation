@@ -17,6 +17,7 @@ pc104.allocateTraj(num_pts);
 disp('unpause to start recording data');
 pause
 %Go traj in this case is basically just record data as the control mode is set to NO_CONTROL (0)
+%Dont' need to call pc104.sendTraj(...) since there is no trajectory to send!
 pc104.goTraj();
 pause(30);
 pc104.getTrajData();
