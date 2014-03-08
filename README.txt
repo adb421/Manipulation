@@ -1,4 +1,6 @@
-README for the PC104_Arm3DoF Matlab class.
+************************************************************************
+README FOR INTERFACING WITH PC104 ARM CONTROL
+************************************************************************
 
 The goal of the class is to abstract away all communication and low-level interfacing with the QNX PC104 stack. The class contains a great number of functions and they can sometimes be unwieldy to work through or figure out how each one works just looking at the matlab code. This will provide higher level documentation for each function and hopefully make the class easier to use. For the functions that send an int cmd to be processed by the PC104, I've included the cmd number so you can find the relevant C code relatively quickly.
 
@@ -10,6 +12,10 @@ As any changes made to the class will not be implemented if this is not called a
 
 
 At this time I would also make sure that the Camera is connected by running the relevant c++ program.
+
+************************************************************************
+USING THE MATLAB CLASS
+************************************************************************
 
 
 An instance of the class can be constructed with the following command:
@@ -24,6 +30,10 @@ This creates an instance of the class with the default constructor (the only con
 One of the first things to do with the object, and probably to be done immediately after construction is the connect function:
 pc104.connect();
 This will attempt to connect to the QNX PC-104 over tcpip with a 1500 byte buffer for input and output, a timeout of 5 seconds, and over the ports defined in the constructor. This function takes no arguments and returns nothing. It will display 'Connected' if the connection is successful and will cause an error if not.
+
+
+
+The PC104 code has a bunch of functions the process_commands.* files which provide ways to talk to it by sending integers. Whenever the PC104 receives a packet that is from the PC, if it is not already executing one of these functions it checks to see if it received an int that matches one of these functions. This matlab class has functions built in to send these integers over to put the PC104 in one of these functions. These are outlined below and the integers used to call them are listed with the function as "cmd = n" where n is the desired command function. These provide the easiest way to interface with the PC104 and similar functions could be added easily by following the same protocol.
 
 
 
@@ -118,3 +128,8 @@ Calculates the finite-time LQR feedback gain matrix as a function of time for th
 
 
 pc104.sendDoubles(val), pc104.recDoubles(n_pts) should not be used by the end user and are lower-level calls to send data back and forth between the PC104. DO NOT EDIT THESE UNLESS YOU KNOW WHAT YOU ARE DOING. Messing with them could break a lot of code. They handle low-level sending and receiving of arrays of doubles.
+
+
+************************************************************************
+TEST SCRIPTS
+************************************************************************
