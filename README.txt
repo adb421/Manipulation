@@ -162,3 +162,8 @@ GravityTest.m
 This script was used with the NO_CONTROL (0) mode to measure data from the cameras to calculate gravity. I would start this, then throw the block and let it fall, pulling all the data corresponding to parabolic motion and fit those to quadratics and use the quadratic term to calculate gravity (twice gravity to be precise). Then I would average it over all the parabolic motions in the 30s period and use that average. This corresponded to a table angle of 0.4 radians.
 
 
+LimitCheckScript.m
+Similar to the GravityTestScript.m in the sense that no control is used, but different in that we don't actually need to execute a trajectory. The goal of this script was not to record data, but just to quickly gather the joint angles when they are at their maximum and minimum. You start up this script, move the arm to a position where you want the joint angles, and unpause matlab and they will be printed to the screen or returned from the function.
+
+
+

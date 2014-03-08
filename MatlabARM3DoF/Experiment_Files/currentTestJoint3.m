@@ -1,4 +1,5 @@
-
+%This script is used with the TRAJ_IS_CURRENT (2) mode to provide a
+%trajectory of desired currents for the 
 dt = 0.001;
 params = ParametersFunction;
 T = 30;
