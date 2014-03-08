@@ -6,5 +6,6 @@
 *#*
 *.zip
 *.nb
+*.mat
 x86/
 MotionPlanning/
