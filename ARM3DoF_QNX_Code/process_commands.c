@@ -573,7 +573,6 @@ void procCmd15() {
 
 void procCmd16() {
     sendString("SETMODE\n");
-    readInt(&trajectory_control_mode)
-
+    readInt(&trajectory_control_mode);
 }
 
