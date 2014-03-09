@@ -111,6 +111,9 @@ This function ends the program running on the PC104.
 pc104.LQRTrajSend(traj1, traj2, traj3, traj4, uffx, uffy, uffth, t); %cmd = 15
 Calculates the finite-time LQR problem for the given trajectory and controls. It then sends over the huge 3x8xnum_pts K matrix for each point in time as well as the full trajectory and control. This takes a long time but is usually the preferred method for one-point rolling as its the most general version. The problem with it is that it is quite slow. It is used with the control mode ONE_POINT_ROLL_TRAJ (12).
 
+pc104.setTrajectoryControlMode(control_mode); %cmd = 16
+Sends over the desired control mode for the following trajectory. This must be called before executing a trajectory or else the control mode will be set to NO_CONTROL (0). Control modes can be found in ParametersFunction() or the params struct (e.g. params.NO_CONTROL == 0)
+
 
 
 pc104.plotTrajData();
@@ -164,6 +167,15 @@ This script was used with the NO_CONTROL (0) mode to measure data from the camer
 
 LimitCheckScript.m
 Similar to the GravityTestScript.m in the sense that no control is used, but different in that we don't actually need to execute a trajectory. The goal of this script was not to record data, but just to quickly gather the joint angles when they are at their maximum and minimum. You start up this script, move the arm to a position where you want the joint angles, and unpause matlab and they will be printed to the screen or returned from the function.
+
+
+
+currentTestJoint3.m
+A script to demonstrate the TRAJ_IS_CURRENT (2) mode. This demonstrates how you could create trajectories which are currents (in Amps) for the individual motors and send them over.
+
+
+OnePointRollingTrajTest.m
+This script demonstrates the ONE_POINT_ROLL_TRAJ (12) mode. This shows how the trajectory is linearized and the LQR is calculated. Note this trajectory could be a constant.
 
 
 

@@ -301,6 +301,25 @@ classdef PC104_Arm3DoF < handle
             end
         end
         
+                %Execute trajectory (cmd = 5)
+        function setTrajectoryControlMode(obj,control_mode) %cmd = 16
+            if(obj.connected)
+                    cmd = 16;
+                    fwrite(obj.IPout,cmd,'int32');
+                    text = fscanf(obj.IPin,'%s');
+                    if(isempty(strfind(text,'SETMODE')))
+                        disp('Didnt get command');
+                        disp(text)
+                        return
+                    end
+                    fwrite(obj.IPout,control_mode,'int32');
+                end
+            else
+                disp('Not connected')
+                return
+            end
+        end
+        
         %Sends an array of doubles
         function sendDoubles(obj, val)
             if(obj.connected)

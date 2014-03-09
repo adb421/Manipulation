@@ -26,6 +26,7 @@ void procCmd12();
 void procCmd13();
 void procCmd14();
 void procCmd15();
+void procCmd16();
 
 
 #endif /* PROCESS_COMMANDS_H_ */

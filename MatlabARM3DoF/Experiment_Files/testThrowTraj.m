@@ -1,4 +1,7 @@
-%Check if a trajectory is even feasible
+%A script to do a "throw" motion from awhile ago. This can be used to
+%demonstrate the manipulator trajectory following mode, FF_PID_TRAJ_MANIP
+%(8). This shows how a trajectory could be made in cartesian space for the
+%manipulator and used on the robot.
 clear classes
 params = ParametersFunction();
 pc104 = PC104_Arm3DoF;
@@ -24,6 +27,7 @@ pc104.goHome();
 
 %Send traj
 pc104.allocateTraj(num_pts);
+pc104.setTrajectoryControlMode(params.FF_PID_TRAJ_MANIP);
 pc104.sendTraj(xd(1,:),xd(2,:),xd(3,:),t);
 
 disp('unpause for traj go')

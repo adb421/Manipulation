@@ -40,6 +40,7 @@ void initialize_variables() {
     velYObjectGlobal = 0.0;
     velThObjectGlobal = 0.0;
     end_program = 0;
+    trajectory_control_mode = 0;
 }
 
 void initialize_junus(uintptr_t iobase) {

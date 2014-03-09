@@ -8,6 +8,7 @@
 %Record data for 30 seconds.
 t = 0:0.001:30;
 num_pts = length(t);
+params = ParametersFunction();
 
 %These are pretty much always called
 pc104 = PC104_Arm3DoF;
@@ -18,6 +19,7 @@ disp('unpause to start recording data');
 pause
 %Go traj in this case is basically just record data as the control mode is set to NO_CONTROL (0)
 %Dont' need to call pc104.sendTraj(...) since there is no trajectory to send!
+pc104.setTrajectoryControlMode(params.NO_CONTROL);
 pc104.goTraj();
 pause(30);
 pc104.getTrajData();

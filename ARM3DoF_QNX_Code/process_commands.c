@@ -72,6 +72,10 @@ void process_cmd() {
     //LQR Trajectory
     procCmd15();
     break;
+    case 16:
+	//Set trajectory control mode
+	procCmd16();
+	break;
     case -1:
 	printf("Couldn't read a command\n");
 	break;
@@ -268,29 +272,7 @@ void procCmd5() {
     errorInt1 = 0;
     errorInt2 = 0;
     errorInt3 = 0;
-    //These are different control modes
-    //Feedforward control only
-    //control_mode = FEEDFORWARD_JOINTS;
-    //Trajectories given are desired currents
-    //control_mode = TRAJ_IS_CURRENT;
-    //Pure PID control
-    //control_mode = PID_TRAJ_JOINTS;
-    //Feedforward + PID control
-   //control_mode = FF_PID_TRAJ_JOINTS;
-    //Dynamic Grasp
- //   control_mode = DYNAMIC_GRASP_TRAJ;
-    //Follow a manipulator trajectory
-    //Go back to this!!!!!!!!
-    //control_mode = FF_PID_TRAJ_MANIP;
-    //BALANCE THAT ISH
-    //control_mode = ONE_POINT_ROLL_BALANCE; // Use TRAJ for now
-    //control_mode = NEW_ONE_POINT_ROLL_BALANCE;
-    control_mode = ONE_POINT_ROLL_TRAJ;
- //   home1 = traj1[num_pts - 1];
- //   home2 = traj2[num_pts - 1];
-   // home3 = traj3[num_pts - 1];
-    //Right now, want to get estimate of gravity!
-    //control_mode = NO_CONTROL;
+    control_mode = trajectory_control_mode;
 }
 
 //Get control gains
@@ -588,3 +570,10 @@ void procCmd15() {
     INNER_K2_8 = INN_K2_8;
     printf("Got everything for LQR traj\n");
 }
+
+void procCmd16() {
+    sendString("SETMODE\n");
+    readInt(&trajectory_control_mode)
+
+}
+

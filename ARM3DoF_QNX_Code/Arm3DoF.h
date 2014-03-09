@@ -225,6 +225,9 @@ double xObjectGlobal, yObjectGlobal, thObjectGlobal;
 double velXObjectGlobal, velYObjectGlobal, velThObjectGlobal;
 double xManipCam_global, yManipCam_global;
 
+
+int trajectory_control_mode;
+
 //These will eventually be #defs
 #define INN_K1_14 (0.00005)
 #define INN_K2_14 (0.55)

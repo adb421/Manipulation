@@ -205,4 +205,19 @@ params.Anew = Anew;
 params.Bnew = Bnew;
 params.Qnew = Qnew;
 params.Rnew = params.R;
+
+
+params.NO_CONTROL         0; %apply no torques
+params.GO_HOME_JOINTS     1; %go to a specified joint home position
+params.TRAJ_IS_CURRENT    2; %trajectories given are desired motor currents
+params.FEEDFORWARD_JOINTS 3; %Feed forward only trajectory control, given as joint angle trajs
+params.PID_TRAJ_JOINTS    4; %PID trajectory control, given as joint angle trajs
+params.FF_PID_TRAJ_JOINTS 5; %Same as above, but with feed forward added
+params.DYNAMIC_GRASP_TRAJ 6; %Follow a trajectory assuming dynamic grasp, trajs are object pos
+params.DYNAMIC_GRASP_POS  7; %Go to a specified object pos, assume dyn grasp
+params.FF_PID_TRAJ_MANIP  8; %Follow a trajectory, trajs are manipulator pos (x,y,th)
+params.PID_MANIP_POS      9; %Go to a specified manipulator pos aka home position
+params.ONE_POINT_ROLL_BALANCE 10; % Balance one point rolling, stabilize a point
+params.NEW_ONE_POINT_ROLL_BALANCE 11; %Balance one point rolling, LQR is on manipulator config instead of object
+params.ONE_POINT_ROLL_TRAJ 12; %Balance one point rolling, LQR trajectory tracking
 end
