@@ -169,7 +169,6 @@ LimitCheckScript.m
 Similar to the GravityTestScript.m in the sense that no control is used, but different in that we don't actually need to execute a trajectory. The goal of this script was not to record data, but just to quickly gather the joint angles when they are at their maximum and minimum. You start up this script, move the arm to a position where you want the joint angles, and unpause matlab and they will be printed to the screen or returned from the function.
 
 
-
 currentTestJoint3.m
 A script to demonstrate the TRAJ_IS_CURRENT (2) mode. This demonstrates how you could create trajectories which are currents (in Amps) for the individual motors and send them over.
 
